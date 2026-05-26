@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+// IMPORT CHUẨN XÁC: Gọi các hàm API liên quan từ file quản lý chung
+import { getFriendsApi, createConversationApi } from "../api/api";
 
 export default function CreateGroupModal({ isOpen, onClose }) {
   const [groupName, setGroupName] = useState("");
@@ -6,40 +8,42 @@ export default function CreateGroupModal({ isOpen, onClose }) {
   // State quản lý từ khóa tìm kiếm thành viên
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
 
-  // Mảng lưu ID của những thành viên được tích chọn tham gia nhóm
+  // STATE ĐÃ CẬP NHẬT: Quản lý danh sách bạn bè thật bốc từ API
+  const [friendList, setFriendList] = useState([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
 
-  // Danh sách bạn bè add cứng dùng để tích chọn tạo nhóm
-  const friendList = [
-    {
-      id: 2,
-      name: "Satsuki",
-      avatar:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuBbEnfWoJN0FdX8Q0Hq4yE8WQ3NjFAwW0TcMQACprWtM0VqxxbP1Sgw0eTqykmNfDZtFBy5ZvIH7SWwAmyOrrWEZ6SNR5scHsWMxBKtKscaJs0DiDoWB6sFt2FbPH_8rzfVPcOquHc9qOYVx_JaEDZHkEXwuv8Z_pJaZK0Mmat7-6orD3w26bB58PGA5o0wGsPr_7hi6gC5oxa1ObU1SEiwFjt8hNqMPeiirCHzBeMFigp_WK806igADIPMmBDV0oIF-KOC-QfcS0o",
-      bio: "🌸 Người yêu cơn mưa mùa hạ",
-    },
-    {
-      id: 3,
-      name: "Mei",
-      avatar:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuDHOA6JzXhWkDkkk6txfQ34mARY-BslsFdLmm1Lu5E8mwn97qpLRXwJV6lVomfjtcUGMaWQLcAEJXIwDKhdQFX6SN8soBnkKirRUlSgD95DTGGlJGWenv-1Ir3_aRUXYxlLjMWbxnBM_Fei4TtozkR_eLjl5879HdbmB6qwh-5KAvWRU8YRRIo0j7K1ytBxrKtEH32fWqLYpb4MPHS1K3QFAVgXfDdfk-1PaGZryriCXL22S1gA-5cPbXxPvE0LYWycsCmUYFSHrKg",
-      bio: "Đuổi theo hạt mầm rừng xanh",
-    },
-    {
-      id: 5,
-      name: "Chị Kusa",
-      avatar:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuDnc7JSk99vzS_o4UmNd1jwkafcH0cI43oXuD3htmyEiYbCOnHXbusaCbsr-nbDO7wR8PUvT7FZkaeeBdmFxvmMl2-tWaZHSyKMEwO8f2m7c0NKdZkoiapiAqRsqGnK7GEw-vpqPYJkcTYmNAOlJOl0Z6_SY7CaLenNtNpmCRUOsI8GjlJMCp4SqIv3vETUP_PfR2mKXzVHpVjwAHfvm2tQ81tNyyAG8spZEpu5H4Z_xJ2eG99f5c5BDsUgJe-Nn1eN2sIhLQx3dtw",
-      bio: "Tĩnh lặng ngắm sao",
-    },
-  ];
+  // LOGIC ĐÃ THÊM: Tự động triệu hồi danh sách bạn bè thật khi Modal mở lên
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchFriends = async () => {
+      setLoadingFriends(true);
+      try {
+        const response = await getFriendsApi();
+        if (response && response.code === 200) {
+          setFriendList(response.data || []);
+        }
+      } catch (error) {
+        console.error(
+          "Không thể lấy danh sách bạn bè để tạo nhóm:",
+          error.message,
+        );
+      } finally {
+        setLoadingFriends(false);
+      }
+    };
+
+    fetchFriends();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Lọc danh sách bạn bè dựa trên kí tự ô tìm kiếm thành viên
-  const filteredFriendsToInvite = friendList.filter((f) =>
-    f.name.toLowerCase().includes(memberSearchQuery.toLowerCase()),
-  );
+  // Lọc danh sách bạn bè dựa trên kí tự ô tìm kiếm thành viên (Đọc theo username/nickName thật từ DB)
+  const filteredFriendsToInvite = friendList.filter((f) => {
+    const nameToSearch = f.nickName || f.username || "";
+    return nameToSearch.toLowerCase().includes(memberSearchQuery.toLowerCase());
+  });
 
   // Xử lý khi click chọn/hủy chọn thành viên
   const handleToggleMember = (id) => {
@@ -52,35 +56,59 @@ export default function CreateGroupModal({ isOpen, onClose }) {
     }
   };
 
-  // Lấy danh sách object các bạn bè đã được chọn để làm hàng Preview
+  // Lấy danh sách object các bạn bè đã được chọn để làm hàng Preview ngang
   const selectedFriendsPreview = friendList.filter((f) =>
     selectedMemberIds.includes(f.id),
   );
 
-  const handleSubmit = (e) => {
+  // TÍCH HỢP LOGIC API: Xử lý hành động gửi Form tạo nhóm thật lên Spring Boot
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!groupName.trim()) return;
 
-    const selectedNames = selectedFriendsPreview.map((f) => f.name);
+    const groupPayload = {
+      type: "GROUP",
+      name: groupName.trim(),
+      participantIds: selectedMemberIds,
+    };
 
-    alert(
-      `Khởi tạo nhóm: "${groupName}"\nThành viên gồm: Bạn, ${
-        selectedNames.length > 0
-          ? selectedNames.join(", ")
-          : "Chưa có thành viên"
-      } 🌿`,
-    );
+    try {
+      const response = await createConversationApi(groupPayload);
 
-    setGroupName("");
-    setMemberSearchQuery("");
-    setSelectedMemberIds([]);
-    onClose();
+      if (response && response.code === 200 && response.data) {
+        // 1. Lấy dữ liệu nhóm mới từ API trả về
+        let newGroupData = response.data;
+
+        // 2. GIẢ LẬP TIN NHẮN TRÊN FRONTEND:
+        // Tự bổ sung trường tin nhắn cuối cùng để Sidebar bốc ra hiển thị lập tức
+        newGroupData.lastMessage = {
+          content: `Bạn đã khởi tạo nhóm "${groupName.trim()}" thành công 🌿`,
+          type: "SYSTEM", // Hoặc "TEXT" tùy thuộc vào cách Sidebar của bạn lọc dữ liệu
+          createdAt: new Date().toISOString(),
+        };
+        // Đồng bộ thời gian để phòng chat nhảy lên đầu danh sách Sidebar
+        newGroupData.lastMessageAt = new Date().toISOString();
+
+        // 3. Đẩy dữ liệu đã được làm đẹp lên file cha
+        if (onGroupCreated) {
+          onGroupCreated(newGroupData);
+        }
+
+        // Làm sạch Form và đóng Modal
+        setGroupName("");
+        setMemberSearchQuery("");
+        setSelectedMemberIds([]);
+        onClose();
+      }
+    } catch (error) {
+      console.error("Khởi tạo phòng chat nhóm thất bại:", error.message);
+    }
   };
 
   return (
-    /* LỚP NỀN BAO QUANH NGOÀI CÙNG: Chiếm 100% diện tích phân vùng bên phải */
+    /* LỚP NỀN BAO QUANH NGOÀI CÙNG */
     <div className="absolute inset-0 rounded-3xl bg-[rgba(253,251,247,0.3)] backdrop-blur-[4px] flex items-center justify-center p-6 z-50 animate-in fade-in duration-200">
-      {/* KHUNG BOX TRUNG TÂM: Bọc gọn nội dung, mờ kính dày hơn, bo góc tròn sâu */}
+      {/* KHUNG BOX TRUNG TÂM */}
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-xl h-full max-h-[500px] bg-[rgba(253,251,247,0.9)] backdrop-blur-[16px] border border-white rounded-[32px] shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-6 flex flex-col justify-between overflow-hidden animate-in zoom-in-95 duration-200"
@@ -104,7 +132,7 @@ export default function CreateGroupModal({ isOpen, onClose }) {
             </button>
           </div>
 
-          {/* Ô Input Nhập Tên Nhóm - Đã đẩy lên đầu thay thế chỗ cho phần chọn ảnh cũ */}
+          {/* Ô Input Nhập Tên Nhóm */}
           <div className="space-y-1 pt-3 shrink-0">
             <label className="text-[10px] font-bold uppercase tracking-wider text-[#434840]/60 ml-1">
               Tên nhóm trò chuyện
@@ -159,11 +187,11 @@ export default function CreateGroupModal({ isOpen, onClose }) {
                   className="flex items-center gap-1 bg-[#a8d5ba]/10 border border-[#a8d5ba]/20 pl-1.5 pr-1 py-0.5 rounded-lg text-[10px] font-bold text-[#434840] shrink-0 hover:bg-red-50 hover:text-red-500 hover:border-red-200 group transition-all"
                 >
                   <img
-                    src={friend.avatar}
+                    src={friend.avatarUrl || "https://i.pravatar.cc/100"}
                     className="w-3.5 h-3.5 rounded-full object-cover"
                     alt=""
                   />
-                  <span>{friend.name}</span>
+                  <span>{friend.nickName || friend.username}</span>
                   <span className="material-symbols-outlined text-xs text-[#434840]/40 group-hover:text-red-500 flex items-center">
                     close
                   </span>
@@ -179,57 +207,64 @@ export default function CreateGroupModal({ isOpen, onClose }) {
             </p>
 
             <div className="grid grid-cols-1 gap-1.5">
-              {filteredFriendsToInvite.map((friend) => {
-                const isChecked = selectedMemberIds.includes(friend.id);
-                return (
-                  <div
-                    key={friend.id}
-                    onClick={() => handleToggleMember(friend.id)}
-                    className={`flex items-center justify-between p-2 rounded-xl border border-transparent cursor-pointer transition-colors ${
-                      isChecked
-                        ? "bg-[#a8d5ba]/10 border-[#a8d5ba]/20"
-                        : "bg-white/50 hover:bg-white border-white/40 shadow-sm"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <img
-                        src={friend.avatar}
-                        className="w-7 h-7 rounded-full object-cover border border-white shrink-0 shadow-sm"
-                        alt=""
-                      />
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-[#1c1c18] truncate">
-                          {friend.name}
-                        </p>
-                        <p className="text-[10px] text-[#434840]/50 truncate">
-                          {friend.bio}
-                        </p>
-                      </div>
-                    </div>
-
+              {loadingFriends ? (
+                <div className="text-center py-6 text-[11px] text-[#434840]/40 italic flex items-center justify-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm animate-spin text-[#a8d5ba]">
+                    progress_activity
+                  </span>
+                  Đang tải danh bạ...
+                </div>
+              ) : filteredFriendsToInvite.length === 0 ? (
+                <p className="text-xs text-[#434840]/40 text-center italic pt-4">
+                  Không tìm thấy linh hồn nào phù hợp từ khóa.
+                </p>
+              ) : (
+                filteredFriendsToInvite.map((friend) => {
+                  const isChecked = selectedMemberIds.includes(friend.id);
+                  return (
                     <div
-                      className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all shrink-0 ml-2 ${
+                      key={friend.id}
+                      onClick={() => handleToggleMember(friend.id)}
+                      className={`flex items-center justify-between p-2 rounded-xl border border-transparent cursor-pointer transition-colors ${
                         isChecked
-                          ? "bg-[#a8d5ba] border-[#a8d5ba] text-white"
-                          : "border-[#c3c8bd] bg-white"
+                          ? "bg-[#a8d5ba]/10 border-[#a8d5ba]/20"
+                          : "bg-white/50 hover:bg-white border-white/40 shadow-sm"
                       }`}
                     >
-                      {isChecked && (
-                        <span className="material-symbols-outlined text-[9px] font-bold">
-                          check
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img
+                          src={friend.avatarUrl || "https://i.pravatar.cc/100"}
+                          className="w-7 h-7 rounded-full object-cover border border-white shrink-0 shadow-sm"
+                          alt=""
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#1c1c18] truncate">
+                            {friend.nickName || friend.username}
+                          </p>
+                          <p className="text-[10px] text-[#434840]/50 truncate">
+                            {friend.online ? "Đang trực tuyến" : "Ngoại tuyến"}
+                          </p>
+                        </div>
+                      </div>
 
-            {filteredFriendsToInvite.length === 0 && (
-              <p className="text-xs text-[#434840]/40 text-center italic pt-4">
-                Không tìm thấy linh hồn nào phù hợp từ khóa.
-              </p>
-            )}
+                      <div
+                        className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all shrink-0 ml-2 ${
+                          isChecked
+                            ? "bg-[#a8d5ba] border-[#a8d5ba] text-white"
+                            : "border-[#c3c8bd] bg-white"
+                        }`}
+                      >
+                        {isChecked && (
+                          <span className="material-symbols-outlined text-[9px] font-bold">
+                            check
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
 

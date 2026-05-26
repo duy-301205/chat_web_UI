@@ -123,3 +123,64 @@ export const recallMessageApi = async (messageId) => {
         headers: authHeaders(),
     });
 };
+
+export const searchUsersApi = async (data) => {
+    return request("http://localhost:8086/api/users/search", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(data), // data chứa { keyword: "..." }
+    });
+};
+
+// API: Gửi lời mời kết bạn đến một người dùng theo ID
+export const requestFriendApi = async (targetUserId) => {
+    return request(`http://localhost:8086/api/friendships/request/${targetUserId}`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+};
+
+
+export const acceptFriendRequest = async (targetUserId) => {
+    return request(`http://localhost:8086/api/friendships/accept/${targetUserId}`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+};
+
+// Endpoint: DELETE http://localhost:8086/api/friendships/remove/{targetUserId}
+export const removeFriend = async (targetUserId) => {
+    return request(`http://localhost:8086/api/friendships/remove/${targetUserId}`, {
+        method: "DELETE", // Sử dụng đúng phương thức DELETE khớp với Controller Java
+        headers: authHeaders(),
+    });
+};
+
+export const getPendingRequestsApi = async () => {
+    return request("http://localhost:8086/api/friendships/requests/pending", {
+        method: "GET",
+        headers: authHeaders(),
+    });
+};
+
+export const getFriendsApi = async () => {
+    return request("http://localhost:8086/api/friendships/friends", {
+        method: "GET",
+        headers: authHeaders(),
+    });
+};
+
+export const getOrCreatePrivateChatApi = async (targetUserId) => {
+    return request(`http://localhost:8086/api/conversations/private/${targetUserId}`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+};
+
+export const createConversationApi = async (data) => {
+    return request("http://localhost:8086/api/conversations", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(data), // data chứa { type: "GROUP", name: "...", participantIds: [...] }
+    });
+};

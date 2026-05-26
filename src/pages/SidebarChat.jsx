@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getFriendsApi, getOrCreatePrivateChatApi } from "../api/api";
 
 export default function SidebarChat({
   view,
@@ -16,53 +17,45 @@ export default function SidebarChat({
   setIsNotificationOpen,
   notifications,
   handleAddFriend,
-  setIsCreateGroupOpen, // Nhận hàm thay đổi trạng thái từ file cha DashboardChat truyền xuống
+  setIsCreateGroupOpen,
 }) {
-  // Trạng thái cục bộ điều khiển việc đóng/mở Dropdown các mục khi click nút 3 gạch
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Trạng thái quản lý xem Sidebar đang hiển thị phần ruột nào: "cuoc_tro_chuyen" hoặc "ban_be"
   const [sidebarMenu, setSidebarMenu] = useState("cuoc_tro_chuyen");
+  const [friendList, setFriendList] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
 
-  // Dữ liệu danh sách bạn bè mẫu có sẵn
-  const friendList = [
-    {
-      id: 2,
-      name: "Satsuki",
-      avatar:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuBbEnfWoJN0FdX8Q0Hq4yE8WQ3NjFAwW0TcMQACprWtM0VqxxbP1Sgw0eTqykmNfDZtFBy5ZvIH7SWwAmyOrrWEZ6SNR5scHsWMxBKtKscaJs0DiDoWB6sFt2FbPH_8rzfVPcOquHc9qOYVx_JaEDZHkEXwuv8Z_pJaZK0Mmat7-6orD3w26bB58PGA5o0wGsPr_7hi6gC5oxa1ObU1SEiwFjt8hNqMPeiirCHzBeMFigp_WK806igADIPMmBDV0oIF-KOC-QfcS0o",
-      bio: "🌸 Okie, mình cảm ơn nhaa",
-      isOnline: true,
-    },
-    {
-      id: 3,
-      name: "Mei",
-      avatar:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuDHOA6JzXhWkDkkk6txfQ34mARY-BslsFdLmm1Lu5E8mwn97qpLRXwJV6lVomfjtcUGMaWQLcAEJXIwDKhdQFX6SN8soBnkKirRUlSgD95DTGGlJGWenv-1Ir3_aRUXYxlLjMWbxnBM_Fei4TtozkR_eLjl5879HdbmB6qwh-5KAvWRU8YRRIo0j7K1ytBxrKtEH32fWqLYpb4MPHS1K3QFAVgXfDdfk-1PaGZryriCXL22S1gA-5cPbXxPvE0LYWycsCmUYFSHrKg",
-      bio: "Nhìn xem em tìm thấy gì này!",
-      isOnline: true,
-    },
-    {
-      id: 5,
-      name: "Chị Kusa",
-      avatar:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuDnc7JSk99vzS_o4UmNd1jwkafcH0cI43oXuD3htmyEiYbCOnHXbusaCbsr-nbDO7wR8PUvT7FZkaeeBdmFxvmMl2-tWaZHSyKMEwO8f2m7c0NKdZkoiapiAqRsqGnK7GEw-vpqPYJkcTYmNAOlJOl0Z6_SY7CaLenNtNpmCRUOsI8GjlJMCp4SqIv3vETUP_PfR2mKXzVHpVjwAHfvm2tQ81tNyyAG8spZEpu5H4Z_xJ2eG99f5c5BDsUgJe-Nn1eN2sIhLQx3dtw",
-      bio: "Lịch dạo chơi đền cổ nhé.",
-      isOnline: false,
-    },
-  ];
+  useEffect(() => {
+    if (sidebarMenu !== "ban_be") return;
 
-  // Lọc danh sách bạn bè dựa trên kí tự ô tìm kiếm
-  const filteredFriendList = friendList.filter((friend) =>
-    friend.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+    const fetchFriendsData = async () => {
+      setLoadingFriends(true);
+      try {
+        const response = await getFriendsApi();
+        if (response && response.code === 200) {
+          setFriendList(response.data || []);
+        }
+      } catch (error) {
+        console.error(
+          "Lấy danh sách bạn bè từ Server thất bại:",
+          error.message,
+        );
+      } finally {
+        setLoadingFriends(false);
+      }
+    };
+
+    fetchFriendsData();
+  }, [sidebarMenu]);
+
+  const filteredFriendList = friendList.filter((friend) => {
+    const nameToSearch = friend.nickName || friend.username || "";
+    return nameToSearch.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   return (
     <aside className="w-[300px] flex-shrink-0 rounded-3xl bg-[rgba(253,251,247,0.9)] backdrop-blur-[12px] border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col h-full overflow-hidden relative z-20">
-      {/* BRAND & HEADER - ĐÃ ĐƯỢC CHỈNH THẲNG HÀNG HOÀN HẢO TUYỆT ĐỐI BẰNG ITEMS-CENTER VÀ TEXT-BASE */}
       <div className="p-4 pt-5 pb-3 flex items-center justify-between relative">
         <div className="flex items-center gap-2">
-          {/* NÚT 3 GẠCH CHUẨN */}
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className={`p-1 rounded-lg transition-colors text-[#434840] flex items-center justify-center ${isDropdownOpen ? "bg-[#f0eee8]" : "hover:bg-[#f0eee8]"}`}
@@ -71,16 +64,12 @@ export default function SidebarChat({
               menu
             </span>
           </button>
-
-          {/* Tiêu đề chữ - Đồng bộ tỷ lệ nhỏ gọn chữ text-base và thẳng hàng */}
           <h1 className="text-base font-bold text-[#a8d5ba] flex items-center">
             {sidebarMenu === "cuoc_tro_chuyen" ? "Chat Web" : "Bạn bè"}
           </h1>
         </div>
 
-        {/* Cụm icon phụ bên phải tiêu đề nằm THẲNG HÀNG tuyệt đối với tiêu đề và nút 3 gạch */}
         <div className="flex items-center gap-1">
-          {/* NÚT TẠO NHÓM CHAT MỚI KIỂU CHUẨN FACEBOOK */}
           <button
             onClick={() => setIsCreateGroupOpen(true)}
             className="w-7 h-7 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] transition-colors"
@@ -89,7 +78,6 @@ export default function SidebarChat({
             <span className="material-symbols-outlined text-lg">group_add</span>
           </button>
 
-          {/* Nút Khám phá cũ */}
           <button
             onClick={() => setView(view === "spirits" ? "chat" : "spirits")}
             className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${view === "spirits" ? "bg-[#a8d5ba]/20 text-[#a8d5ba]" : "text-[#434840] hover:bg-[#f0eee8]"}`}
@@ -101,13 +89,12 @@ export default function SidebarChat({
           </button>
         </div>
 
-        {/* GIAO DIỆN THANH CÁC MỤC THẢ XUỐNG (MENU DROPDOWN) */}
         {isDropdownOpen && (
           <div className="absolute top-12 left-4 w-[180px] rounded-xl bg-white border border-[#c3c8bd]/30 shadow-lg p-1.5 flex flex-col z-50 animate-in fade-in zoom-in-95 duration-100">
             <button
               onClick={() => {
                 setSidebarMenu("cuoc_tro_chuyen");
-                setView("chat"); // Trở lại view chat chính diện bên phải
+                setView("chat");
                 setIsDropdownOpen(false);
               }}
               className={`w-full h-8 px-2.5 rounded-lg flex items-center gap-2 text-xs font-semibold transition-colors ${sidebarMenu === "cuoc_tro_chuyen" ? "bg-[#b0e0f6]/10 text-[#b0e0f6]" : "text-[#434840] hover:bg-[#f0eee8]/50"}`}
@@ -129,7 +116,6 @@ export default function SidebarChat({
         )}
       </div>
 
-      {/* Search Input Box */}
       <div className="px-4 pb-3">
         <div className="relative flex items-center w-full h-8 rounded-full bg-[#f0eee8] border border-[#c3c8bd]/30 text-[#1c1c18] focus-within:bg-white focus-within:border-[#a8d5ba]/50 focus-within:ring-1 focus-within:ring-[#a8d5ba]/50 transition-all shadow-sm">
           <span className="material-symbols-outlined absolute left-3 text-[#434840]/60 text-base">
@@ -157,18 +143,13 @@ export default function SidebarChat({
         </div>
       </div>
 
-      {/* Bộ lọc Tab */}
       {sidebarMenu === "cuoc_tro_chuyen" && (
         <div className="px-4 flex gap-1.5 pb-3 border-b border-[#c3c8bd]/10">
           {["all", "unread", "group"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors uppercase tracking-wider ${
-                activeTab === tab
-                  ? "bg-[#b0e0f6] text-white"
-                  : "text-[#434840] hover:bg-[#f0eee8]"
-              }`}
+              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors uppercase tracking-wider ${activeTab === tab ? "bg-[#b0e0f6] text-white" : "text-[#434840] hover:bg-[#f0eee8]"}`}
             >
               {tab === "all"
                 ? "Tất cả"
@@ -180,7 +161,6 @@ export default function SidebarChat({
         </div>
       )}
 
-      {/* Vùng Render List động */}
       <nav className="flex-1 overflow-y-auto py-1">
         {globalSearchCandidates.length > 0 && (
           <div className="mb-3 border-b border-[#c3c8bd]/20 pb-1">
@@ -238,9 +218,7 @@ export default function SidebarChat({
                     setView("chat");
                     setIsNotificationOpen(false);
                   }}
-                  className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer transition-colors relative ${
-                    isItemActive ? "bg-[#b0e0f6]/10" : "hover:bg-[#f0eee8]/50"
-                  }`}
+                  className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer transition-colors relative ${isItemActive ? "bg-[#b0e0f6]/10" : "hover:bg-[#f0eee8]/50"}`}
                 >
                   {isItemActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8 bg-[#b0e0f6] rounded-r-full"></div>
@@ -267,10 +245,16 @@ export default function SidebarChat({
                       </span>
                     </div>
                     <p className="text-xs text-[#434840] truncate">
-                      <span className="font-medium text-[#1c1c18]">
-                        {chat.sender}{" "}
-                      </span>
-                      {chat.lastMessage}
+                      {chat.lastMessageSenderName !== "SYSTEM" &&
+                        chat.sender && (
+                          <span className="font-medium text-[#1c1c18]">
+                            {chat.sender}{" "}
+                          </span>
+                        )}
+                      {typeof chat.lastMessage === "object" &&
+                      chat.lastMessage !== null
+                        ? chat.lastMessage.content
+                        : chat.lastMessage || "Chưa có tin nhắn nào... 🍃"}
                     </p>
                   </div>
                   {chat.unread > 0 && (
@@ -287,46 +271,68 @@ export default function SidebarChat({
             <div className="px-4 py-0.5 text-[10px] font-bold text-[#434840]/40 uppercase tracking-wider">
               Bạn bè hiện tại ({filteredFriendList.length})
             </div>
-            {filteredFriendList.map((friend) => (
-              <div
-                key={friend.id}
-                onClick={() => {
-                  const targetChat = filteredChatList.find(
-                    (c) => c.name === friend.name,
-                  );
-                  if (targetChat) {
-                    setActiveChatId(targetChat.id);
-                    setSidebarMenu("cuoc_tro_chuyen");
-                    setView("chat");
-                  }
-                }}
-                className="flex items-center gap-2.5 px-4 py-2 hover:bg-[#f0eee8]/50 transition-colors cursor-pointer"
-              >
-                <div className="relative w-9 h-9 rounded-full overflow-hidden border border-white shrink-0">
-                  <img
-                    src={friend.avatar}
-                    className="w-full h-full object-cover"
-                    alt=""
-                  />
-                  {friend.isOnline && (
-                    <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold text-[#1c1c18] truncate">
-                    {friend.name}
-                  </h4>
-                  <p className="text-[11px] text-[#434840]/60 truncate">
-                    {friend.bio}
-                  </p>
-                </div>
+
+            {loadingFriends ? (
+              <div className="px-4 py-6 text-center text-[11px] text-[#434840]/40 italic flex items-center justify-center gap-1.5">
+                <span className="material-symbols-outlined text-sm animate-spin text-[#a8d5ba]">
+                  progress_activity
+                </span>
+                Đang triệu hồi danh sách linh hồn...
               </div>
-            ))}
+            ) : filteredFriendList.length === 0 ? (
+              <div className="px-4 py-6 text-center text-[11px] text-[#434840]/40 italic">
+                Danh sách bạn bè trống. 🍃
+              </div>
+            ) : (
+              filteredFriendList.map((friend) => (
+                <div
+                  key={friend.id}
+                  onClick={async () => {
+                    try {
+                      const response = await getOrCreatePrivateChatApi(
+                        friend.id,
+                      );
+                      if (response && response.code === 200 && response.data) {
+                        const conversationId = response.data;
+                        setActiveChatId(conversationId);
+                        setSidebarMenu("cuoc_tro_chuyen");
+                        setView("chat");
+                        setIsNotificationOpen(false);
+                      }
+                    } catch (error) {
+                      console.error(
+                        "Không thể mở cuộc hội thoại với người này:",
+                        error.message,
+                      );
+                    }
+                  }}
+                  className="flex items-center gap-2.5 px-4 py-2 hover:bg-[#f0eee8]/50 transition-colors cursor-pointer animate-in fade-in duration-150"
+                >
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden border border-white shrink-0">
+                    <img
+                      src={friend.avatarUrl || "https://i.pravatar.cc/100"}
+                      className="w-full h-full object-cover"
+                      alt=""
+                    />
+                    {friend.online && (
+                      <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xs font-bold text-[#1c1c18] truncate">
+                      {friend.nickName || friend.username}
+                    </h4>
+                    <p className="text-[11px] text-[#434840]/60 truncate">
+                      {friend.online ? "Đang hoạt động" : "Ngoại tuyến"}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </>
         )}
       </nav>
 
-      {/* User Profile / Settings Bottom */}
       <div className="p-3 border-t border-[#c3c8bd]/10 flex items-center gap-1.5 bg-transparent relative">
         <div
           onClick={() => {

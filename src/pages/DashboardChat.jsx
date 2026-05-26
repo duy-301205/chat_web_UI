@@ -6,9 +6,7 @@ import CreateGroupModal from "./CreateGroupModel";
 import AddMemberModal from "./AddMemberModel";
 import ViewMembersModal from "./ViewMembersModal";
 import {
-  initialChatList,
   globalUsersZone,
-  initialMembers,
   userData,
   initialNotifications,
 } from "../data/chatData";
@@ -28,35 +26,19 @@ export default function DashboardChat() {
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [activeChatId, setActiveChatId] = useState(null);
   const [messages, setMessages] = useState([]);
-
-  // Trạng thái view phân hệ chính bên phải: "chat" (Whispers), "spirits" (Spirits), "garden" (Garden)
-  // Khi ở trang cá nhân, view sẽ nhận giá trị "profile"
   const [view, setView] = useState("chat");
-
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // NẠP STATE MỞ MODAL TẠO NHÓM LÊN ĐÂY ĐỂ ĐIỀU PHỐI VÙNG KHÔNG GIAN BÊN PHẢI CHUẨN XÁC
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
-
-  // STATE ĐƯỢC THÊM MỚI: Quản lý đóng/mở giao diện Thêm thành viên và Xem tất cả thành viên
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isViewMembersOpen, setIsViewMembersOpen] = useState(false);
-
   const [chatList, setChatList] = useState([]);
   const [notifications, setNotifications] = useState(initialNotifications);
-
-  // KHỞI TẠO STATE MEMBERS RỖNG ĐỂ CHUẨN BỊ ĐÓN DỮ LIỆU TỪ API
   const [members, setMembers] = useState([]);
-
-  // STATE THÊM MỚI: Quản lý nội dung văn bản tin nhắn đang nhập ở khung input chat
   const [inputText, setInputText] = useState("");
-
-  // STATE THÊM MỚI: Quản lý trạng thái khi đang chỉnh sửa một tin nhắn nào đó
   const [editingMessageId, setEditingMessageId] = useState(null);
 
-  // Hàm helper để push thông báo hệ thống dạng tin nhắn vào khay thông báo thay vì dùng alert
   const pushSystemNotification = (title, desc, icon = "info") => {
     const newNotif = {
       id: Date.now(),
@@ -73,9 +55,6 @@ export default function DashboardChat() {
     const fetchConversations = async () => {
       try {
         const result = await getConversationsApi();
-
-        console.log("Danh sách cuộc trò chuyện:", result);
-
         if (result.code === 200) {
           setChatList(result.data || []);
         }
@@ -83,23 +62,17 @@ export default function DashboardChat() {
         console.error("Lấy danh sách cuộc trò chuyện thất bại:", error.message);
       }
     };
-
     fetchConversations();
   }, []);
 
-  // Đóng gói logic fetch tin nhắn thành hàm độc lập để tái sử dụng sau khi gửi tin nhắn mới
   const fetchMessages = async () => {
     if (!activeChatId) return;
     try {
       const result = await getMessagesByConversationApi(activeChatId);
-
-      console.log("Danh sách tin nhắn:", result);
-
       if (result.code === 200) {
         const sortedMessages = [...(result.data.content || [])].sort(
           (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         );
-
         setMessages(sortedMessages);
       }
     } catch (error) {
@@ -111,7 +84,6 @@ export default function DashboardChat() {
     fetchMessages();
   }, [activeChatId]);
 
-  // TÍCH HỢP API 1: Tự động gọi lấy danh sách thành viên thực tế khi activeChatId thay đổi
   useEffect(() => {
     if (!activeChatId) {
       setMembers([]);
@@ -121,7 +93,6 @@ export default function DashboardChat() {
     const fetchMembers = async () => {
       try {
         const result = await getConversationMembersApi(activeChatId);
-        console.log("Danh sách thành viên cuộc trò chuyện:", result);
         if (result.code === 200) {
           setMembers(result.data || []);
         }
@@ -129,11 +100,9 @@ export default function DashboardChat() {
         console.error("Lấy danh sách thành viên thất bại:", error.message);
       }
     };
-
     fetchMembers();
   }, [activeChatId]);
 
-  // Hàm reload danh sách thành viên độc lập phục vụ sau khi thêm mới thành công
   const reloadMembers = async () => {
     if (!activeChatId) return;
     try {
@@ -149,30 +118,23 @@ export default function DashboardChat() {
     }
   };
 
-  // TÍCH HỢP API 2: Xử lý thêm thành viên mới gửi từ Modal lên server
   const handleAddMemberSubmit = async (data) => {
     try {
       const result = await addConversationMemberApi(activeChatId, data);
       if (result.code === 200 || result.status === "success" || result) {
         pushSystemNotification(
           "Hội nhóm",
-          "Đã thêm thành viên mới vào nhóm thành công. 🌿",
+          "Đã thêm thành viên mới thành công. 🌿",
           "group_add",
         );
-        await reloadMembers(); // Tải lại danh sách thực tế trên UI
+        await reloadMembers();
         setIsAddMemberOpen(false);
       }
     } catch (error) {
       console.error("Thêm thành viên thất bại:", error.message);
-      pushSystemNotification(
-        "Lỗi hệ thống",
-        `Không thể thêm thành viên: ${error.message}`,
-        "error",
-      );
     }
   };
 
-  // TÍCH HỢP API 3: Xử lý rời khỏi cuộc hội thoại nhóm hiện tại
   const handleLeaveGroupSubmit = async () => {
     if (!activeChatId) return;
     try {
@@ -190,19 +152,12 @@ export default function DashboardChat() {
       }
     } catch (error) {
       console.error("Rời nhóm thất bại:", error.message);
-      pushSystemNotification(
-        "Lỗi hệ thống",
-        `Không thể rời nhóm: ${error.message}`,
-        "error",
-      );
     }
   };
 
-  // ĐÃ TÍCH HỢP: Hàm xử lý gửi tin nhắn mới HOẶC lưu nội dung tin nhắn sau khi sửa
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeChatId) return;
 
-    // TRƯỜNG HỢP: Đang ở chế độ sửa tin nhắn
     if (editingMessageId) {
       try {
         const result = await editMessageApi({
@@ -211,26 +166,20 @@ export default function DashboardChat() {
         });
         if (result) {
           setInputText("");
-          setEditingMessageId(null); // Thoát chế độ sửa
-          await fetchMessages(); // Reload tin nhắn
+          setEditingMessageId(null);
+          await fetchMessages();
           pushSystemNotification(
             "Tin nhắn",
-            "Đã cập nhật thay đổi nội dung tin nhắn. ✨",
+            "Đã cập nhật nội dung tin nhắn. ✨",
             "edit",
           );
         }
       } catch (error) {
         console.error("Sửa tin nhắn thất bại:", error.message);
-        pushSystemNotification(
-          "Lỗi hệ thống",
-          `Sửa tin nhắn thất bại: ${error.message}`,
-          "error",
-        );
       }
       return;
     }
 
-    // TRƯỜNG HỢP MẶC ĐỊNH: Gửi tin nhắn mới tinh
     try {
       const formData = new FormData();
       const messageRequest = {
@@ -246,27 +195,20 @@ export default function DashboardChat() {
       }
     } catch (error) {
       console.error("Gửi tin nhắn thất bại:", error.message);
-      pushSystemNotification(
-        "Lỗi hệ thống",
-        `Không thể gửi tin nhắn: ${error.message}`,
-        "error",
-      );
     }
   };
 
-  // ĐÃ TÍCH HỢP: Hàm kích hoạt trạng thái sửa tin nhắn, nạp nội dung cũ lên thanh input nhập liệu
   const startEditMessage = (message) => {
     if (message.isDeleted) return;
     setEditingMessageId(message.id);
     setInputText(message.content);
   };
 
-  // ĐÃ TÍCH HỢP: Hàm kích hoạt gọi API thu hồi tin nhắn
   const handleRecallMessage = async (messageId) => {
     try {
       const result = await recallMessageApi(messageId);
       if (result) {
-        await fetchMessages(); // Tải lại danh sách chat để hiện chữ "Tin nhắn đã bị xóa"
+        await fetchMessages();
         pushSystemNotification(
           "Tin nhắn",
           "Tin nhắn đã được thu hồi.",
@@ -275,23 +217,16 @@ export default function DashboardChat() {
       }
     } catch (error) {
       console.error("Thu hồi tin nhắn thất bại:", error.message);
-      pushSystemNotification(
-        "Lỗi hệ thống",
-        `Thu hồi thất bại: ${error.message}`,
-        "error",
-      );
     }
   };
 
-  // ĐÃ TÍCH HỢP: Hàm bắt sự kiện gõ phím của người dùng tại ô nhập liệu
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault(); // Ngăn hành vi xuống dòng mặc định của nút Enter
+      e.preventDefault();
       handleSendMessage();
     }
   };
 
-  // Xử lý logic kết bạn mới
   const handleAddFriend = (targetUser) => {
     pushSystemNotification(
       "Hệ thống kết bạn",
@@ -300,18 +235,16 @@ export default function DashboardChat() {
     );
   };
 
-  // Bộ lọc danh sách chat hiện hành
   const filteredChatList = chatList.filter((chat) => {
     const matchesSearch = chat.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
     if (activeTab === "unread") return chat.unread > 0;
-    if (activeTab === "group") return chat.isGroup === true;
+    if (activeTab === "group") return chat.type === "GROUP";
     return true;
   });
 
-  // Tìm kiếm ứng viên kết bạn từ danh sách global
   const globalSearchCandidates =
     searchQuery.trim() !== ""
       ? globalUsersZone.filter(
@@ -323,7 +256,6 @@ export default function DashboardChat() {
 
   const currentActiveChat = chatList.find((chat) => chat.id === activeChatId);
 
-  // HÀM HELPER: Format nhãn ngày thông minh (Hôm nay, Hôm qua, hoặc Ngày cụ thể)
   const formatMessageGroupDate = (dateString) => {
     const messageDate = new Date(dateString);
     const today = new Date();
@@ -353,7 +285,6 @@ export default function DashboardChat() {
       }}
     >
       <div className="flex h-full w-full gap-4 max-w-[1600px] mx-auto relative">
-        {/* 1. THANH ĐIỀU HƯỚNG SIDEBAR TRÁI LUÔN ĐƯỢC GIỮ CỐ ĐỊNH Ở ĐÂY */}
         <SidebarChat
           view={view}
           setView={setView}
@@ -370,18 +301,14 @@ export default function DashboardChat() {
           setIsNotificationOpen={setIsNotificationOpen}
           notifications={notifications}
           handleAddFriend={handleAddFriend}
-          setIsCreateGroupOpen={setIsCreateGroupOpen} // Truyền hàm mở modal xuống SidebarChat
+          setIsCreateGroupOpen={setIsCreateGroupOpen}
         />
 
-        {/* 2. KHỐI ĐIỀU KIỆN ĐỔI VIEW DÀNH RIÊNG CHO VÙNG TRUNG TÂM BÊN PHẢI */}
         {view === "spirits" ? (
-          /* HIỂN THỊ GIAO DIỆN TÌM BẠN BÈ DẠNG CARD */
           <FindSpirits onAddFriend={handleAddFriend} />
         ) : view === "profile" ? (
-          /* HIỂN THỊ GIAO DIỆN THÔNG TIN CÁ NHÂN */
           <MyProfile userData={userData} onBack={() => setView("chat")} />
         ) : view === "garden" ? (
-          /* GIAO DIỆN KHÔNG GIAN CƠ BẢN CHO GARDEN */
           <main className="flex-1 rounded-3xl bg-[rgba(253,251,247,0.7)] backdrop-blur-[12px] border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col items-center justify-center text-center p-6 z-10">
             <span className="material-symbols-outlined text-6xl text-[#a8d5ba]/60 mb-3">
               potted_plant
@@ -391,12 +318,15 @@ export default function DashboardChat() {
             </p>
           </main>
         ) : (
-          /* VIEW MẶC ĐỊNH: HIỂN THỊ PHÒNG CHAT (WHISPERS) */
           <>
-            {/* Hộp thoại Modal tạo nhóm mới phủ lơ lửng ngay chính giữa không gian bên phải */}
             <CreateGroupModal
               isOpen={isCreateGroupOpen}
               onClose={() => setIsCreateGroupOpen(false)}
+              onGroupCreated={(newGroup) => {
+                setChatList((prevChats) => [newGroup, ...prevChats]);
+                setActiveChatId(newGroup.id);
+                setView("chat");
+              }}
             />
 
             {!activeChatId ? (
@@ -417,7 +347,6 @@ export default function DashboardChat() {
               </main>
             ) : (
               <>
-                {/* Center Pane: Chat Area (GIỮ NGUYÊN 100% GIAO DIỆN CHAT GỐC CỦA BẠN) */}
                 <main className="flex-1 rounded-3xl bg-[rgba(253,251,247,0.9)] backdrop-blur-[12px] border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden relative z-10">
                   <header className="h-[60px] w-full flex items-center justify-between px-4 border-b border-[#c3c8bd]/10 bg-white/50 backdrop-blur-md z-10 shrink-0">
                     <div
@@ -428,7 +357,7 @@ export default function DashboardChat() {
                         <img
                           alt=""
                           className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbEnfWoJN0FdX8Q0Hq4yE8WQ3NjFAwW0TcMQACprWtM0VqxxbP1Sgw0eTqykmNfDZtFBy5ZvIH7SWwAmyOrrWEZ6SNR5scHsWMxBKtKscaJs0DiDoWB8sFt2FbPH_8rzfVPcOquHc9qOYVx_JaEDZHkEXwuv8Z_pJaZK0Mmat7-6orD3w26bB58PGA5o0wGsPr_7hi6gC5oxa1ObU1SEiwFjt8hNqMPeiirCHzBeMFigp_WK806igADIPMmBDV0oIF-KOC-QfcS0o"
+                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbEnfWoJN0FdX8Q0Hq4yE8WQ3NjFAwW0TcMQACprWtM0VqxxbP1Sgw0eTqykmNfDZtFBy5ZvIH7SWwAmyOrrWEZ6SNR5scHsWMxBKtKscaJs0DiDoWB6sFt2FbPH_8rzfVPcOquHc9qOYVx_JaEDZHkEXwuv8Z_pJaZK0Mmat7-6orD3w26bB58PGA5o0wGsPr_7hi6gC5oxa1ObU1SEiwFjt8hNqMPeiirCHzBeMFigp_WK806igADIPMmBDV0oIF-KOC-QfcS0o"
                         />
                         <img
                           alt=""
@@ -477,15 +406,12 @@ export default function DashboardChat() {
                     </div>
                   </header>
 
-                  {/* Chat Messages */}
                   <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 bg-[#fdfbf7]/50">
                     {messages.map((message, index) => {
                       const currentUserId = Number(
                         localStorage.getItem("userId"),
                       );
                       const isMine = Number(message.senderId) === currentUserId;
-
-                      // ĐÃ CẬP NHẬT: Logic sinh nhãn phân tách ngày tự động dựa trên dòng thời gian thực tế
                       const currentMsgDate = new Date(
                         message.createdAt,
                       ).toDateString();
@@ -508,9 +434,7 @@ export default function DashboardChat() {
                           )}
 
                           <div
-                            className={`flex items-end gap-2.5 max-w-[75%] group/msg relative ${
-                              isMine ? "self-end flex-row-reverse" : ""
-                            }`}
+                            className={`flex items-end gap-2.5 max-w-[75%] group/msg relative ${isMine ? "self-end flex-row-reverse" : ""}`}
                           >
                             {!isMine && (
                               <img
@@ -524,20 +448,15 @@ export default function DashboardChat() {
                             )}
 
                             <div
-                              className={`flex flex-col gap-0.5 ${
-                                isMine ? "items-end" : "items-start"
-                              }`}
+                              className={`flex flex-col gap-0.5 ${isMine ? "items-end" : "items-start"}`}
                             >
                               {!isMine && (
                                 <span className="text-[11px] text-[#434840]/70 ml-1">
                                   {message.senderName}
                                 </span>
                               )}
-
                               <div
-                                className={`flex items-center gap-1.5 ${
-                                  isMine ? "flex-row-reverse" : ""
-                                }`}
+                                className={`flex items-center gap-1.5 ${isMine ? "flex-row-reverse" : ""}`}
                               >
                                 <div
                                   className={`rounded-[14px] shadow-[0_1px_4px_rgba(0,0,0,0.02)] px-3 py-2 ${
@@ -552,7 +471,6 @@ export default function DashboardChat() {
                                       ? "Tin nhắn đã bị xóa"
                                       : message.content}
                                   </p>
-
                                   {message.isEdited &&
                                     !(
                                       message.isDeleted ||
@@ -564,7 +482,6 @@ export default function DashboardChat() {
                                     )}
                                 </div>
 
-                                {/* ĐÃ TÍCH HỢP: Cụm nút bấm Sửa / Thu hồi tin nhắn ẩn hiện tinh tế khi hover chuột */}
                                 {isMine &&
                                   !(
                                     message.isDeleted ||
@@ -612,9 +529,7 @@ export default function DashboardChat() {
                     })}
                   </div>
 
-                  {/* Input Area */}
                   <div className="p-3 bg-white/80 border-t border-[#c3c8bd]/10 backdrop-blur-md flex flex-col gap-1.5">
-                    {/* ĐÃ TÍCH HỢP: Hiển thị thanh nhỏ thông báo đang ở chế độ sửa tin nhắn nếu có state */}
                     {editingMessageId && (
                       <div className="flex items-center justify-between px-3 py-1 bg-[#a8d5ba]/10 rounded-lg text-xs text-[#434840] shrink-0 animate-in fade-in duration-150">
                         <div className="flex items-center gap-1.5">
@@ -672,7 +587,7 @@ export default function DashboardChat() {
                       </div>
                       <button
                         onClick={handleSendMessage}
-                        disabled={!inputText.trim()} // Vô hiệu hóa nút nếu không có chữ
+                        disabled={!inputText.trim()}
                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 text-white ${
                           inputText.trim()
                             ? "bg-[#a8d5ba] shadow-md scale-105 active:scale-95 cursor-pointer"
@@ -690,7 +605,6 @@ export default function DashboardChat() {
                   </div>
                 </main>
 
-                {/* Right Pane: Group Details */}
                 {isRightSidebarOpen && (
                   <aside className="w-[280px] flex-shrink-0 rounded-3xl bg-white/90 border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col h-full overflow-hidden z-10 relative">
                     <AddMemberModal
@@ -699,7 +613,6 @@ export default function DashboardChat() {
                       currentMembers={members}
                       onAddMember={handleAddMemberSubmit}
                     />
-
                     <ViewMembersModal
                       isOpen={isViewMembersOpen}
                       onClose={() => setIsViewMembersOpen(false)}
