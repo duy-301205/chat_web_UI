@@ -275,6 +275,16 @@ export default function DashboardChat() {
     }
   };
 
+  // Lọc danh sách bạn bè động từ dữ liệu hệ thống, loại bỏ những người đã ở trong phòng chat hiện tại
+  const friendsAvailableToAdd = globalUsersZone.filter(
+    (friend) =>
+      !members.some((member) => {
+        const friendId = String(friend.id || friend.userId || "");
+        const memberId = String(member.id || member.userId || "");
+        return friendId === memberId && friendId !== "";
+      }),
+  );
+
   return (
     <div
       className="h-screen w-screen overflow-hidden text-[#1c1c18] font-sans antialiased selection:bg-[#a8d5ba]/20 selection:text-[#1c1c18] bg-cover bg-center bg-fixed p-4 notranslate"
@@ -607,11 +617,13 @@ export default function DashboardChat() {
 
                 {isRightSidebarOpen && (
                   <aside className="w-[280px] flex-shrink-0 rounded-3xl bg-white/90 border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col h-full overflow-hidden z-10 relative">
+                    {/* SỬA TẠI ĐÂY: Đã truyền biến động friendsAvailableToAdd vào prop allFriends */}
                     <AddMemberModal
                       isOpen={isAddMemberOpen}
                       onClose={() => setIsAddMemberOpen(false)}
                       currentMembers={members}
                       onAddMember={handleAddMemberSubmit}
+                      allFriends={friendsAvailableToAdd}
                     />
                     <ViewMembersModal
                       isOpen={isViewMembersOpen}

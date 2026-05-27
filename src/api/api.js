@@ -163,7 +163,12 @@ export const getPendingRequestsApi = async () => {
     });
 };
 
-export const getFriendsApi = async () => {
+export const getFriendsApi = async (searchQuery = "") => {
+    // Nếu có tham số tìm kiếm, dùng searchUsersApi để tìm kiếm
+    if (searchQuery.trim() !== "") {
+        return searchUsersApi({ keyword: searchQuery });
+    }
+    // Nếu không có tham số tìm kiếm, lấy toàn bộ danh sách bạn bè
     return request("http://localhost:8086/api/friendships/friends", {
         method: "GET",
         headers: authHeaders(),

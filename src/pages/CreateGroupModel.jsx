@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 // IMPORT CHUẨN XÁC: Gọi các hàm API liên quan từ file quản lý chung
 import { getFriendsApi, createConversationApi } from "../api/api";
 
-export default function CreateGroupModal({ isOpen, onClose }) {
+export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
   const [groupName, setGroupName] = useState("");
 
   // State quản lý từ khóa tìm kiếm thành viên
@@ -13,9 +13,13 @@ export default function CreateGroupModal({ isOpen, onClose }) {
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
 
+  // STATE THÊM MỚI THEO YÊU CẦU: Quản lý ẩn hiện box thông báo thành công
+  const [isSuccess, setIsSuccess] = useState(false);
+
   // LOGIC ĐÃ THÊM: Tự động triệu hồi danh sách bạn bè thật khi Modal mở lên
   useEffect(() => {
     if (!isOpen) return;
+    setIsSuccess(false); // Reset trạng thái thông báo khi mở lại modal
 
     const fetchFriends = async () => {
       setLoadingFriends(true);
@@ -76,29 +80,29 @@ export default function CreateGroupModal({ isOpen, onClose }) {
       const response = await createConversationApi(groupPayload);
 
       if (response && response.code === 200 && response.data) {
-        // 1. Lấy dữ liệu nhóm mới từ API trả về
         let newGroupData = response.data;
 
-        // 2. GIẢ LẬP TIN NHẮN TRÊN FRONTEND:
-        // Tự bổ sung trường tin nhắn cuối cùng để Sidebar bốc ra hiển thị lập tức
         newGroupData.lastMessage = {
           content: `Bạn đã khởi tạo nhóm "${groupName.trim()}" thành công 🌿`,
-          type: "SYSTEM", // Hoặc "TEXT" tùy thuộc vào cách Sidebar của bạn lọc dữ liệu
+          type: "SYSTEM",
           createdAt: new Date().toISOString(),
         };
-        // Đồng bộ thời gian để phòng chat nhảy lên đầu danh sách Sidebar
         newGroupData.lastMessageAt = new Date().toISOString();
 
-        // 3. Đẩy dữ liệu đã được làm đẹp lên file cha
-        if (onGroupCreated) {
-          onGroupCreated(newGroupData);
-        }
+        // 3. THÊM THEO YÊU CẦU: Bật thông báo tạo thành công trước khi đóng modal
+        setIsSuccess(true);
 
-        // Làm sạch Form và đóng Modal
-        setGroupName("");
-        setMemberSearchQuery("");
-        setSelectedMemberIds([]);
-        onClose();
+        setTimeout(() => {
+          if (onGroupCreated) {
+            onGroupCreated(newGroupData);
+          }
+          // Làm sạch Form và đóng hẳn Modal sau khi hiện thông báo xong
+          setGroupName("");
+          setMemberSearchQuery("");
+          setSelectedMemberIds([]);
+          setIsSuccess(false);
+          onClose();
+        }, 2000);
       }
     } catch (error) {
       console.error("Khởi tạo phòng chat nhóm thất bại:", error.message);
@@ -106,9 +110,30 @@ export default function CreateGroupModal({ isOpen, onClose }) {
   };
 
   return (
-    /* LỚP NỀN BAO QUANH NGOÀI CÙNG */
+    /* LỚP NỀN BAO QUANH NGOÀI CÙNG - GIỮ NGUYÊN VẸN */
     <div className="absolute inset-0 rounded-3xl bg-[rgba(253,251,247,0.3)] backdrop-blur-[4px] flex items-center justify-center p-6 z-50 animate-in fade-in duration-200">
-      {/* KHUNG BOX TRUNG TÂM */}
+      {/* THÊM MỚI THEO YÊU CẦU: Hộp thoại (box) hiện ra thông báo thành công phủ lên trên */}
+      {isSuccess && (
+        <div className="absolute inset-0 m-auto w-full max-w-sm h-fit bg-white/95 backdrop-blur-md border border-[#a8d5ba]/40 rounded-[24px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] p-5 flex flex-col items-center justify-center text-center gap-2.5 z-50 animate-in zoom-in-95 duration-200">
+          <div className="w-10 h-10 rounded-full bg-[#a8d5ba]/10 text-[#a8d5ba] flex items-center justify-center animate-bounce">
+            <span className="material-symbols-outlined text-xl font-bold">
+              spa
+            </span>
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-[#1c1c18]">
+              Tạo nhóm thành công
+            </h4>
+            <p className="text-[11px] text-[#434840]/70 mt-1">
+              Nhóm{" "}
+              <span className="font-bold text-[#1c1c18]">"{groupName}"</span> đã
+              được khởi tạo thành công!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* KHUNG BOX TRUNG TÂM GỐC - GIỮ NGUYÊN 100% GIAO DIỆN CŨ CỦA BẠN */}
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-xl h-full max-h-[500px] bg-[rgba(253,251,247,0.9)] backdrop-blur-[16px] border border-white rounded-[32px] shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-6 flex flex-col justify-between overflow-hidden animate-in zoom-in-95 duration-200"
