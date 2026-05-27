@@ -91,7 +91,7 @@ export const leaveConversationApi = async (conversationId) => {
     return request(
         `http://localhost:8086/api/conversations/${conversationId}/leave`,
         {
-            method: "DELETE",
+            method: "POST",
             headers: authHeaders(),
         }
     );
