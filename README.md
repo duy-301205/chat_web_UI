@@ -45,7 +45,9 @@ src/
     └── FindSpirits.jsx       # Tính năng/Giao diện tìm kiếm bạn bè
 ```
 Các bước triển khai
+
 Bước 1: Clone dự án về máy local
+
 Bước 2: Cài đặt các thư viện phụ thuộc (Dependencies)
   npm install
 Bước 3: Chạy ứng dụng ở môi trường phát triển (Development Mode)
