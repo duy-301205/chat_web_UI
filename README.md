@@ -49,8 +49,11 @@ Các bước triển khai
 Bước 1: Clone dự án về máy local
 
 Bước 2: Cài đặt các thư viện phụ thuộc (Dependencies)
+
   npm install
+  
 Bước 3: Chạy ứng dụng ở môi trường phát triển (Development Mode)
+
   npm run dev
 Sau khi khởi chạy thành công, bạn có thể truy cập giao diện tại địa chỉ mặc định của local (Ví dụ: http://localhost:5173 hoặc http://localhost:3000).
 
