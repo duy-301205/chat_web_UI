@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 // 1. Import Link từ react-router-dom để kích hoạt tính năng chuyển trang siêu tốc
 import { Link, useNavigate } from "react-router-dom";
-import ghibliBg from "../assets/Login.png";
+import ghibliBg from "../assets/login2.png";
 import { registerApi } from "../api/api";
 
 export default function Register() {
@@ -40,7 +40,7 @@ export default function Register() {
       <div className="absolute inset-0 z-0">
         <img
           alt="Ghibli Tree Background"
-          className="w-full h-full object-cover object-center opacity-90"
+          className="w-full h-full object-fill object-center opacity-90"
           src={ghibliBg}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-surface/20"></div>

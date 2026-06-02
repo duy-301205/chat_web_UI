@@ -275,7 +275,6 @@ export default function DashboardChat() {
     }
   };
 
-  // Lọc danh sách bạn bè động từ dữ liệu hệ thống, loại bỏ những người đã ở trong phòng chat hiện tại
   const friendsAvailableToAdd = globalUsersZone.filter(
     (friend) =>
       !members.some((member) => {
@@ -443,87 +442,13 @@ export default function DashboardChat() {
                             </div>
                           )}
 
-                          <div
-                            className={`flex items-end gap-2.5 max-w-[75%] group/msg relative ${isMine ? "self-end flex-row-reverse" : ""}`}
-                          >
-                            {!isMine && (
-                              <img
-                                alt=""
-                                className="w-7 h-7 rounded-full object-cover mb-0.5 shrink-0"
-                                src={
-                                  message.senderAvatar ||
-                                  "https://i.pravatar.cc/100"
-                                }
-                              />
-                            )}
-
-                            <div
-                              className={`flex flex-col gap-0.5 ${isMine ? "items-end" : "items-start"}`}
-                            >
-                              {!isMine && (
-                                <span className="text-[11px] text-[#434840]/70 ml-1">
-                                  {message.senderName}
+                          {message.type === "SYSTEM" || !message.senderId ? (
+                            <div className="flex justify-center my-2.5 animate-in fade-in duration-300 w-full">
+                              <div className="px-3 py-0.5 rounded-full bg-[#f0eee8]/60 border border-[#c3c8bd]/20 text-[11px] text-[#434840]/70 flex items-center gap-1.5 shadow-sm">
+                                <span className="italic font-medium">
+                                  {message.content}
                                 </span>
-                              )}
-                              <div
-                                className={`flex items-center gap-1.5 ${isMine ? "flex-row-reverse" : ""}`}
-                              >
-                                <div
-                                  className={`rounded-[14px] shadow-[0_1px_4px_rgba(0,0,0,0.02)] px-3 py-2 ${
-                                    isMine
-                                      ? "bg-[#a8d5ba] rounded-br-[4px]"
-                                      : "bg-white rounded-bl-[4px] border border-black/5"
-                                  }`}
-                                >
-                                  <p className="text-[14px] text-[#1c1c18] leading-normal">
-                                    {message.isDeleted ||
-                                    message.content === "Tin nhắn đã bị xóa"
-                                      ? "Tin nhắn đã bị xóa"
-                                      : message.content}
-                                  </p>
-                                  {message.isEdited &&
-                                    !(
-                                      message.isDeleted ||
-                                      message.content === "Tin nhắn đã bị xóa"
-                                    ) && (
-                                      <span className="text-[10px] text-[#434840]/50 italic block text-right mt-0.5">
-                                        Đã chỉnh sửa
-                                      </span>
-                                    )}
-                                </div>
-
-                                {isMine &&
-                                  !(
-                                    message.isDeleted ||
-                                    message.content === "Tin nhắn đã bị xóa"
-                                  ) && (
-                                    <div className="opacity-0 group-hover/msg:opacity-100 flex items-center gap-1 transition-opacity bg-white/80 backdrop-blur-sm shadow-sm border border-black/5 rounded-full px-1.5 py-0.5 h-6 mx-1">
-                                      <button
-                                        onClick={() =>
-                                          startEditMessage(message)
-                                        }
-                                        title="Chỉnh sửa"
-                                        className="text-[#434840]/60 hover:text-[#a8d5ba] p-0.5 rounded transition-colors"
-                                      >
-                                        <span className="material-symbols-outlined text-xs font-light">
-                                          edit
-                                        </span>
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          handleRecallMessage(message.id)
-                                        }
-                                        title="Thu hồi"
-                                        className="text-[#434840]/60 hover:text-red-500 p-0.5 rounded transition-colors"
-                                      >
-                                        <span className="material-symbols-outlined text-xs font-light">
-                                          history
-                                        </span>
-                                      </button>
-                                    </div>
-                                  )}
-
-                                <span className="text-[10px] text-[#434840]/50 shrink-0 mb-0.5">
+                                <span className="text-[10px] text-[#434840]/60 font-normal border-l border-[#434840]/20 pl-1.5 ml-0.5">
                                   {new Date(
                                     message.createdAt,
                                   ).toLocaleTimeString([], {
@@ -533,7 +458,99 @@ export default function DashboardChat() {
                                 </span>
                               </div>
                             </div>
-                          </div>
+                          ) : (
+                            <div
+                              className={`flex items-end gap-2.5 max-w-[75%] group/msg relative ${isMine ? "self-end flex-row-reverse" : ""}`}
+                            >
+                              {!isMine && (
+                                <img
+                                  alt=""
+                                  className="w-7 h-7 rounded-full object-cover mb-0.5 shrink-0"
+                                  src={
+                                    message.senderAvatar ||
+                                    "https://i.pravatar.cc/100"
+                                  }
+                                />
+                              )}
+
+                              <div
+                                className={`flex flex-col gap-0.5 ${isMine ? "items-end" : "items-start"}`}
+                              >
+                                {!isMine && (
+                                  <span className="text-[11px] text-[#434840]/70 ml-1">
+                                    {message.senderName}
+                                  </span>
+                                )}
+                                <div
+                                  className={`flex items-center gap-1.5 ${isMine ? "flex-row-reverse" : ""}`}
+                                >
+                                  <div
+                                    className={`rounded-[14px] shadow-[0_1px_4px_rgba(0,0,0,0.02)] px-3 py-2 ${
+                                      isMine
+                                        ? "bg-[#a8d5ba] rounded-br-[4px]"
+                                        : "bg-white rounded-bl-[4px] border border-black/5"
+                                    }`}
+                                  >
+                                    <p className="text-[14px] text-[#1c1c18] leading-normal">
+                                      {message.isDeleted ||
+                                      message.content === "Tin nhắn đã bị xóa"
+                                        ? "Tin nhắn đã bị xóa"
+                                        : message.content}
+                                    </p>
+                                    {message.isEdited &&
+                                      !(
+                                        message.isDeleted ||
+                                        message.content === "Tin nhắn đã bị xóa"
+                                      ) && (
+                                        <span className="text-[10px] text-[#434840]/50 italic block text-right mt-0.5">
+                                          Đã chỉnh sửa
+                                        </span>
+                                      )}
+                                  </div>
+
+                                  {isMine &&
+                                    !(
+                                      message.isDeleted ||
+                                      message.content === "Tin nhắn đã bị xóa"
+                                    ) && (
+                                      <div className="opacity-0 group-hover/msg:opacity-100 flex items-center gap-1 transition-opacity bg-white/80 backdrop-blur-sm shadow-sm border border-black/5 rounded-full px-1.5 py-0.5 h-6 mx-1">
+                                        <button
+                                          onClick={() =>
+                                            startEditMessage(message)
+                                          }
+                                          title="Chỉnh sửa"
+                                          className="text-[#434840]/60 hover:text-[#a8d5ba] p-0.5 rounded transition-colors"
+                                        >
+                                          <span className="material-symbols-outlined text-xs font-light">
+                                            edit
+                                          </span>
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleRecallMessage(message.id)
+                                          }
+                                          title="Thu hồi"
+                                          className="text-[#434840]/60 hover:text-red-500 p-0.5 rounded transition-colors"
+                                        >
+                                          <span className="material-symbols-outlined text-xs font-light">
+                                            history
+                                          </span>
+                                        </button>
+                                      </div>
+                                    )}
+
+                                  <span className="text-[10px] text-[#434840]/50 shrink-0 mb-0.5">
+                                    {new Date(
+                                      message.createdAt,
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </React.Fragment>
                       );
                     })}
@@ -617,7 +634,6 @@ export default function DashboardChat() {
 
                 {isRightSidebarOpen && (
                   <aside className="w-[280px] flex-shrink-0 rounded-3xl bg-white/90 border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col h-full overflow-hidden z-10 relative">
-                    {/* SỬA TẠI ĐÂY: Đã truyền biến động friendsAvailableToAdd vào prop allFriends */}
                     <AddMemberModal
                       isOpen={isAddMemberOpen}
                       onClose={() => setIsAddMemberOpen(false)}
@@ -687,16 +703,22 @@ export default function DashboardChat() {
                               Tìm kiếm
                             </span>
                           </div>
-                          <div className="flex flex-col items-center gap-1 cursor-pointer group">
+
+                          {/* 🎯 SỬA CHÍNH TẠI ĐÂY: Đổi "Báo thức" -> "Biệt danh", click vào mở danh sách thành viên */}
+                          <div
+                            onClick={() => setIsViewMembersOpen(true)}
+                            className="flex flex-col items-center gap-1 cursor-pointer group"
+                          >
                             <div className="w-9 h-9 rounded-full bg-[#b0e0f6]/10 flex items-center justify-center text-[#b0e0f6] group-hover:bg-[#b0e0f6]/20 transition-colors">
                               <span className="material-symbols-outlined text-lg">
-                                notifications
+                                badge
                               </span>
                             </div>
                             <span className="text-[10px] font-medium text-[#434840]">
-                              Báo thức
+                              Biệt danh
                             </span>
                           </div>
+
                           <div
                             onClick={handleLeaveGroupSubmit}
                             className="flex flex-col items-center gap-1 cursor-pointer group"

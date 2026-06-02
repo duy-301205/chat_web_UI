@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 // 1. Import Link từ react-router-dom để chuyển trang siêu tốc
 import { Link, useNavigate } from "react-router-dom";
-import ghibliBg from "../assets/Login.png";
+import ghibliBg from "../assets/login2.png";
 import { loginApi } from "../api/api";
 
 export default function Login() {
@@ -42,7 +42,7 @@ export default function Login() {
       <div className="absolute inset-0 z-0">
         <img
           alt="Ghibli Tree Background"
-          className="w-full h-full object-cover object-center opacity-90"
+          className="w-full h-full object-fill object-center opacity-90"
           src={ghibliBg}
         />
         {/* Overlay che mờ để text dễ đọc hơn */}
