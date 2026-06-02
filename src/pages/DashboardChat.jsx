@@ -10,6 +10,12 @@ import ChatInput from "../components/ChatInput";
 import RightSidebar from "../components/RightSidebar";
 
 import {
+  connectWebSocket,
+  disconnectWebSocket,
+  sendWSMessage,
+} from "../api/webSocketService";
+
+import {
   globalUsersZone,
   userData,
   initialNotifications,
@@ -20,9 +26,6 @@ import {
   getConversationMembersApi,
   addConversationMemberApi,
   leaveConversationApi,
-  sendMessageApi,
-  editMessageApi,
-  recallMessageApi,
 } from "../api/api";
 
 export default function DashboardChat() {
@@ -42,6 +45,10 @@ export default function DashboardChat() {
   const [inputText, setInputText] = useState("");
   const [editingMessageId, setEditingMessageId] = useState(null);
 
+  // 🎯 QUẢN LÝ TRẠNG THÁI ĐANG GÕ CHỮ (KIỂU CHUỖI LƯU USERNAME)
+  const [isPartnerTyping, setIsPartnerTyping] = useState("");
+  const currentUserId = Number(localStorage.getItem("userId"));
+
   const pushSystemNotification = (title, desc, icon = "info") => {
     const newNotif = {
       id: Date.now(),
@@ -54,7 +61,6 @@ export default function DashboardChat() {
     setNotifications((prev) => [newNotif, ...prev]);
   };
 
-  // --- API CALLS ---
   useEffect(() => {
     const fetchConversations = async () => {
       try {
@@ -82,8 +88,11 @@ export default function DashboardChat() {
     }
   };
 
+  // Vừa chọn phòng: Vẫn gọi HTTP lấy tin nhắn cũ để render trước
   useEffect(() => {
     fetchMessages();
+    // 🎯 Reset trạng thái gõ chữ khi đổi phòng chat
+    setIsPartnerTyping("");
   }, [activeChatId]);
 
   useEffect(() => {
@@ -102,66 +111,115 @@ export default function DashboardChat() {
     fetchMembers();
   }, [activeChatId]);
 
+  // --- 📡 REALTIME WEB SOCKET INTEGRATION ---
+  useEffect(() => {
+    if (!activeChatId) return;
+
+    // A. Nhận tin nhắn mới realtime
+    const onMessageReceived = (newMsg) => {
+      setMessages((prevMessages) => {
+        // Tránh trùng lặp tin nhắn trên UI
+        if (prevMessages.some((m) => m.id === newMsg.id)) return prevMessages;
+        return [...prevMessages, newMsg].sort(
+          (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+        );
+      });
+    };
+
+    // B. Nhận tin nhắn cập nhật khi có người sửa bài
+    const onMessageEdited = (editedMsg) => {
+      setMessages((prevMessages) =>
+        prevMessages.map((m) => (m.id === editedMsg.id ? editedMsg : m)),
+      );
+    };
+
+    // C. Nhận sự kiện thu hồi tin nhắn
+    const onMessageRecalled = (recalledData) => {
+      setMessages((prevMessages) =>
+        prevMessages.map((m) =>
+          m.id === recalledData.messageId
+            ? { ...m, isDeleted: true, content: "Tin nhắn đã bị xóa" }
+            : m,
+        ),
+      );
+    };
+
+    // 🎯 D. ĐÃ CHỈNH SỬA: Đón nhận trực tiếp dữ liệu username do Backend trả về
+    const onUserTyping = (typingData) => {
+      if (typingData.userId !== currentUserId) {
+        if (typingData.isTyping) {
+          // Lấy thẳng username từ gói tin WebSocket của Backend (không cần find trong mảng members nữa)
+          setIsPartnerTyping(typingData.username || "Ai đó");
+        } else {
+          setIsPartnerTyping("");
+        }
+      }
+    };
+
+    // Khởi chạy kết nối và lắng nghe đúng ID phòng chat hiện tại
+    connectWebSocket(
+      activeChatId,
+      onMessageReceived,
+      onMessageEdited,
+      onMessageRecalled,
+      onUserTyping,
+    );
+
+    // Dọn dẹp kết nối cũ khi đổi phòng chat hoặc đóng giao diện
+    return () => {
+      disconnectWebSocket();
+    };
+  }, [activeChatId]); // Bỏ 'members' khỏi dependency vì không cần phụ thuộc mảng members nữa
+
+  // --- ✉️ HANDLERS XỬ LÝ SỰ KIỆN CHAT (CHUYỂN SANG WEBSOCKET) ---
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeChatId) return;
 
+    // Trường hợp 1: SỬA TIN NHẮN REALTIME
     if (editingMessageId) {
-      try {
-        const result = await editMessageApi({
-          messageId: editingMessageId,
-          content: inputText.trim(),
-        });
-        if (result) {
-          setInputText("");
-          setEditingMessageId(null);
-          await fetchMessages();
-          pushSystemNotification(
-            "Tin nhắn",
-            "Đã cập nhật nội dung tin nhắn. ✨",
-            "edit",
-          );
-        }
-      } catch (error) {
-        console.error("Sửa tin nhắn thất bại:", error.message);
-      }
+      const editRequest = {
+        messageId: editingMessageId,
+        content: inputText.trim(),
+        conversationId: activeChatId,
+      };
+
+      // Bắn lên @MessageMapping("/chat.editMessage") ở Backend
+      sendWSMessage("/app/chat.editMessage", editRequest);
+
+      setInputText("");
+      setEditingMessageId(null);
+      pushSystemNotification(
+        "Tin nhắn",
+        "Đã cập nhật nội dung tin nhắn. ✨",
+        "edit",
+      );
       return;
     }
 
-    try {
-      const formData = new FormData();
-      formData.append(
-        "data",
-        JSON.stringify({
-          conversationId: activeChatId,
-          content: inputText.trim(),
-        }),
-      );
-      const result = await sendMessageApi(formData);
-      if (result) {
-        setInputText("");
-        await fetchMessages();
-      }
-    } catch (error) {
-      console.error("Gửi tin nhắn thất bại:", error.message);
-    }
+    // Trường hợp 2: GỬI TIN NHẮN MỚI REALTIME
+    const messageRequest = {
+      conversationId: activeChatId,
+      content: inputText.trim(),
+      senderId: currentUserId,
+    };
+
+    // Bắn lên @MessageMapping("/chat.sendMessage") ở Backend
+    sendWSMessage("/app/chat.sendMessage", messageRequest);
+    setInputText("");
   };
 
   const handleRecallMessage = async (messageId) => {
-    try {
-      const result = await recallMessageApi(messageId);
-      if (result) {
-        await fetchMessages();
-        pushSystemNotification(
-          "Tin nhắn",
-          "Tin nhắn đã được thu hồi.",
-          "history",
-        );
-      }
-    } catch (error) {
-      console.error("Thu hồi tin nhắn thất bại:", error.message);
-    }
+    const recallRequest = {
+      messageId: messageId,
+      conversationId: activeChatId,
+    };
+
+    // Bắn lên @MessageMapping("/chat.recallMessage") ở Backend
+    sendWSMessage("/app/chat.recallMessage", recallRequest);
+    pushSystemNotification("Tin nhắn", "Tin nhắn đã được thu hồi.", "history");
   };
 
+  // --- HỘI NHÓM & THÀNH VIÊN (GIỮ NGUYÊN HTTP API) ---
   const handleAddMemberSubmit = async (data) => {
     try {
       const result = await addConversationMemberApi(activeChatId, data);
@@ -312,6 +370,7 @@ export default function DashboardChat() {
                   />
                   <MessageList
                     messages={messages}
+                    isPartnerTyping={isPartnerTyping}
                     onStartEdit={(msg) => {
                       if (!msg.isDeleted) {
                         setEditingMessageId(msg.id);
@@ -326,6 +385,8 @@ export default function DashboardChat() {
                     editingMessageId={editingMessageId}
                     setEditingMessageId={setEditingMessageId}
                     onSendMessage={handleSendMessage}
+                    activeChatId={activeChatId}
+                    currentUserId={currentUserId}
                   />
                 </main>
 

@@ -4,6 +4,7 @@ export default function MessageList({
   messages,
   onStartEdit,
   onRecallMessage,
+  isPartnerTyping, // 🎯 Đã đồng bộ nhận String tên người dùng
 }) {
   const currentUserId = Number(localStorage.getItem("userId"));
 
@@ -139,6 +140,23 @@ export default function MessageList({
           </React.Fragment>
         );
       })}
+
+      {/* 🎯 ĐYÀ RỒI: Đã cập nhật giao diện hiển thị Tên người đang gõ */}
+      {isPartnerTyping && (
+        <div className="flex flex-col gap-1 max-w-[75%] animate-in fade-in slide-in-from-bottom-2 duration-200 self-start">
+          {/* Hiện tên cụ thể của người gõ */}
+          <span className="text-[11px] text-[#434840]/60 ml-1 italic">
+            {isPartnerTyping} đang nhập...
+          </span>
+          <div className="rounded-[14px] bg-white rounded-bl-[4px] border border-black/5 px-3 py-2 shadow-sm w-fit">
+            <div className="flex items-center gap-1 h-3 px-1">
+              <span className="w-1.5 h-1.5 bg-[#434840]/50 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-1.5 h-1.5 bg-[#434840]/50 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-1.5 h-1.5 bg-[#434840]/50 rounded-full animate-bounce"></span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

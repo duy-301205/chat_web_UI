@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-// Import hàm search từ file api của bạn
 import { getFriendsApi } from "../api/api";
 
 export default function AddMemberModal({
@@ -42,7 +41,6 @@ export default function AddMemberModal({
     }
 
     setIsLoading(true);
-    // Debounce 300ms tránh spam request liên server khi người dùng đang gõ dở
     const delayDebounceFn = setTimeout(async () => {
       try {
         const result = await getFriendsApi(searchQuery);
@@ -68,7 +66,6 @@ export default function AddMemberModal({
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  // --- KHU VỰC KIỂM TRA ĐIỀU KIỆN RENDER (Đặt dưới toàn bộ Hook để tránh lỗi Rules of Hooks) ---
   if (!isOpen) return null;
 
   // 4. Xác định danh sách nạp vào vòng lặp hiển thị giao diện

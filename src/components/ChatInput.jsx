@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
+import { sendWSMessage } from "../api/webSocketService"; // 🎯 Đã thêm: Import hàm gửi tin nhắn WS
 
 export default function ChatInput({
   inputText,
@@ -6,13 +7,53 @@ export default function ChatInput({
   editingMessageId,
   setEditingMessageId,
   onSendMessage,
+  activeChatId,
+  currentUserId,
 }) {
+  const typingTimeoutRef = useRef(null);
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      sendTypingStatus(false);
+
       onSendMessage();
     }
   };
+
+  const sendTypingStatus = (isTyping) => {
+    if (!activeChatId || !currentUserId) return;
+    sendWSMessage("/app/chat.typing", {
+      conversationId: activeChatId,
+      userId: currentUserId,
+      isTyping: isTyping,
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputText(value);
+
+    if (editingMessageId) return;
+
+    if (value.trim().length > 0) {
+      sendTypingStatus(true);
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTypingStatus(false);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, [activeChatId]);
 
   return (
     <div className="p-3 bg-white/80 border-t border-[#c3c8bd]/10 backdrop-blur-md flex flex-col gap-1.5">
@@ -46,7 +87,7 @@ export default function ChatInput({
           }
           type="text"
           value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
+          onChange={handleInputChange} //
           onKeyDown={handleKeyDown}
         />
         <div className="flex items-center gap-0.5 text-[#434840]/70 px-1">
@@ -70,7 +111,12 @@ export default function ChatInput({
           </button>
         </div>
         <button
-          onClick={onSendMessage}
+          onClick={() => {
+            if (typingTimeoutRef.current)
+              clearTimeout(typingTimeoutRef.current);
+            sendTypingStatus(false);
+            onSendMessage();
+          }}
           disabled={!inputText.trim()}
           className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 text-white ${
             inputText.trim()
