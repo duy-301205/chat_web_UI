@@ -9,7 +9,6 @@ export default function Home() {
       translate="no"
       style={{ backgroundImage: `url(${ghibliBg})` }}
     >
-      {/* Overlay giúp chữ nổi trên nền */}
       <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-white/25 to-transparent pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/5 pointer-events-none" />
 

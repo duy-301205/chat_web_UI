@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-// 1. Import Link từ react-router-dom để chuyển trang siêu tốc
 import { Link, useNavigate } from "react-router-dom";
 import ghibliBg from "../assets/login2.png";
 import { loginApi } from "../api/api";
@@ -7,7 +6,6 @@ import { loginApi } from "../api/api";
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
-  // 2. Khởi tạo hàm điều hướng chuyển trang
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
@@ -45,7 +43,6 @@ export default function Login() {
           className="w-full h-full object-fill object-center opacity-90"
           src={ghibliBg}
         />
-        {/* Overlay che mờ để text dễ đọc hơn */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-surface/20"></div>
       </div>
 
@@ -180,7 +177,6 @@ export default function Login() {
 
         {/* Footer Link */}
         <div className="mt-6 text-center">
-          {/* 2. Thay đổi thẻ <a> bằng thẻ <Link> và href bằng thuộc tính to */}
           <Link
             className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors underline decoration-outline-variant/50 underline-offset-4"
             to="/register"

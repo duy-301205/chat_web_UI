@@ -16,7 +16,6 @@ export default function MyProfile({ userData, onBack }) {
 
   const user = userData || defaultUser;
 
-  // State quản lý các cài đặt tương tự như trong ảnh mẫu
   const [spiritName, setSpiritName] = useState(user.name);
   const [currentMood, setCurrentMood] = useState(
     "Brewing tea under the camphor tree",
@@ -26,16 +25,12 @@ export default function MyProfile({ userData, onBack }) {
   const [enableWhispers, setEnableWhispers] = useState(true);
   const [environment, setEnvironment] = useState("Daylight"); // Daylight, Moonlight
 
-  // Xử lý sự kiện đăng xuất khi click nút Leave Sanctuary dưới đáy cột phải
   const handleLeaveSanctuary = () => {
-    // CHUYỂN HƯỚNG TRỰC TIẾP: Trình duyệt sẽ tự động tải lại và nhảy thẳng về trang đăng nhập
-    // Hãy sửa lại chuỗi "/login" cho đúng với định tuyến trang đăng nhập thực tế của bạn
     window.location.href = "/login";
   };
 
   return (
     <main className="flex-1 rounded-3xl bg-[rgba(253,251,247,0.8)] backdrop-blur-[20px] border border-white/60 shadow-xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 h-full">
-      {/* Top Bar Header - Đã thu nhỏ chiều cao từ h-[72px] xuống h-[60px] */}
       <div className="h-[60px] px-4 border-b border-[#c3c8bd]/10 flex items-center justify-between bg-white/30 backdrop-blur-md shrink-0">
         <button
           onClick={onBack}
@@ -49,16 +44,13 @@ export default function MyProfile({ userData, onBack }) {
         <div className="w-8 h-8"></div>
       </div>
 
-      {/* Vùng nội dung - Thu nhỏ padding từ p-8 xuống p-5, gap từ 8 xuống 5 */}
       <div className="flex-1 overflow-y-auto p-5">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-[1200px] mx-auto">
-          {/* CỘT TRÁI: YOUR SANCTUARY (Chiếm 2/3) - Giảm p-8 xuống p-5 */}
           <div className="lg:col-span-2 bg-[rgba(253,251,247,0.4)] border border-white/40 rounded-3xl p-5 flex flex-col items-center relative">
             <h3 className="text-base font-bold text-[#434840]/90 mb-4 text-center w-full">
               Your Sanctuary
             </h3>
 
-            {/* Avatar tròn đổ bóng mịn - Thu nhỏ từ w-32 h-32 xuống w-24 h-24 */}
             <div className="relative w-24 h-24 mb-6 group">
               <img
                 src={user.avatar}
@@ -68,7 +60,6 @@ export default function MyProfile({ userData, onBack }) {
               <div className="absolute bottom-0.5 right-0.5 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
             </div>
 
-            {/* Khối Input: Spirit Name - Giảm chiều cao h-12 xuống h-10 */}
             <div className="w-full space-y-1 mb-4">
               <label className="text-[11px] font-semibold text-[#434840]/60 ml-1">
                 Spirit Name
@@ -86,7 +77,6 @@ export default function MyProfile({ userData, onBack }) {
               </div>
             </div>
 
-            {/* Khối Input: Current Mood - Giảm chiều cao h-12 xuống h-10 */}
             <div className="w-full space-y-1 mb-4">
               <label className="text-[11px] font-semibold text-[#434840]/60 ml-1">
                 Current Mood
@@ -104,7 +94,6 @@ export default function MyProfile({ userData, onBack }) {
               </div>
             </div>
 
-            {/* Khối Input: Personal Flourish (Bio) */}
             <div className="w-full space-y-1 mb-4">
               <label className="text-[11px] font-semibold text-[#434840]/60 ml-1">
                 Personal Flourish
@@ -117,7 +106,6 @@ export default function MyProfile({ userData, onBack }) {
               />
             </div>
 
-            {/* Khối Tùy Chọn: Presence - Giảm khoảng cách đệm nút */}
             <div className="w-full space-y-2">
               <label className="text-[11px] font-semibold text-[#434840]/60 ml-1">
                 Presence
@@ -150,7 +138,6 @@ export default function MyProfile({ userData, onBack }) {
               </div>
             </div>
 
-            {/* Khối Save cấu hình ở góc dưới - Giảm khoảng cách đệm */}
             <div className="w-full flex justify-end mt-5 border-t border-[#c3c8bd]/10 pt-3">
               <button
                 type="button"
@@ -161,7 +148,6 @@ export default function MyProfile({ userData, onBack }) {
             </div>
           </div>
 
-          {/* CỘT PHẢI: PREFERENCES (Chiếm 1/3) - Giảm p-6 xuống p-4 */}
           <div className="space-y-4">
             <div className="bg-[rgba(253,251,247,0.2)] border border-white/20 rounded-3xl p-4 flex flex-col h-full">
               <h3 className="text-sm font-bold text-[#434840]/90 mb-4">
@@ -174,7 +160,6 @@ export default function MyProfile({ userData, onBack }) {
                   Whispers
                 </span>
 
-                {/* Toggle Enable Whispers - Giảm h-12 xuống h-10 */}
                 <div className="w-full h-10 rounded-xl bg-white/60 border border-white/40 px-3 flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-2 text-[#1c1c18] text-xs font-medium">
                     <span className="material-symbols-outlined text-base text-[#434840]/70">
@@ -193,7 +178,6 @@ export default function MyProfile({ userData, onBack }) {
                   </button>
                 </div>
 
-                {/* Sound Button Selector - Giảm h-12 xuống h-10 */}
                 <button
                   type="button"
                   className="w-full h-10 rounded-xl bg-white/60 border border-white/40 px-3 flex items-center justify-between shadow-sm hover:bg-white transition-all text-left"
@@ -215,7 +199,6 @@ export default function MyProfile({ userData, onBack }) {
                 <span className="text-[9px] font-bold uppercase tracking-wider text-[#434840]/50 block ml-1">
                   Environment
                 </span>
-                {/* Giảm h-16 xuống h-12 */}
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -245,7 +228,6 @@ export default function MyProfile({ userData, onBack }) {
                 <span className="text-[9px] font-bold uppercase tracking-wider text-[#434840]/50 block ml-1">
                   Tongue
                 </span>
-                {/* Giảm h-12 xuống h-10 */}
                 <div className="w-full h-10 rounded-xl bg-white/60 border border-white/40 px-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-white transition-all">
                   <div className="flex items-center gap-2 text-[#1c1c18] text-xs font-medium">
                     <span className="material-symbols-outlined text-base text-[#434840]/70">
@@ -259,7 +241,6 @@ export default function MyProfile({ userData, onBack }) {
                 </div>
               </div>
 
-              {/* LEAVE SANCTUARY BUTTON */}
               <div className="mt-auto pt-4 border-t border-[#c3c8bd]/10">
                 <button
                   type="button"
