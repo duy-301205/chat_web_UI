@@ -45,7 +45,6 @@ export default function DashboardChat() {
   const [inputText, setInputText] = useState("");
   const [editingMessageId, setEditingMessageId] = useState(null);
 
-  // 🎯 QUẢN LÝ TRẠNG THÁI ĐANG GÕ CHỮ (KIỂU CHUỖI LƯU USERNAME)
   const [isPartnerTyping, setIsPartnerTyping] = useState("");
   const currentUserId = Number(localStorage.getItem("userId"));
 
@@ -88,10 +87,8 @@ export default function DashboardChat() {
     }
   };
 
-  // Vừa chọn phòng: Vẫn gọi HTTP lấy tin nhắn cũ để render trước
   useEffect(() => {
     fetchMessages();
-    // 🎯 Reset trạng thái gõ chữ khi đổi phòng chat
     setIsPartnerTyping("");
   }, [activeChatId]);
 
@@ -111,14 +108,12 @@ export default function DashboardChat() {
     fetchMembers();
   }, [activeChatId]);
 
-  // --- 📡 REALTIME WEB SOCKET INTEGRATION ---
   useEffect(() => {
     if (!activeChatId) return;
 
     // A. Nhận tin nhắn mới realtime
     const onMessageReceived = (newMsg) => {
       setMessages((prevMessages) => {
-        // Tránh trùng lặp tin nhắn trên UI
         if (prevMessages.some((m) => m.id === newMsg.id)) return prevMessages;
         return [...prevMessages, newMsg].sort(
           (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
@@ -144,11 +139,9 @@ export default function DashboardChat() {
       );
     };
 
-    // 🎯 D. ĐÃ CHỈNH SỬA: Đón nhận trực tiếp dữ liệu username do Backend trả về
     const onUserTyping = (typingData) => {
       if (typingData.userId !== currentUserId) {
         if (typingData.isTyping) {
-          // Lấy thẳng username từ gói tin WebSocket của Backend (không cần find trong mảng members nữa)
           setIsPartnerTyping(typingData.username || "Ai đó");
         } else {
           setIsPartnerTyping("");
@@ -156,7 +149,6 @@ export default function DashboardChat() {
       }
     };
 
-    // Khởi chạy kết nối và lắng nghe đúng ID phòng chat hiện tại
     connectWebSocket(
       activeChatId,
       onMessageReceived,
@@ -165,17 +157,13 @@ export default function DashboardChat() {
       onUserTyping,
     );
 
-    // Dọn dẹp kết nối cũ khi đổi phòng chat hoặc đóng giao diện
     return () => {
       disconnectWebSocket();
     };
-  }, [activeChatId]); // Bỏ 'members' khỏi dependency vì không cần phụ thuộc mảng members nữa
-
-  // --- ✉️ HANDLERS XỬ LÝ SỰ KIỆN CHAT (CHUYỂN SANG WEBSOCKET) ---
+  }, [activeChatId]);
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeChatId) return;
 
-    // Trường hợp 1: SỬA TIN NHẮN REALTIME
     if (editingMessageId) {
       const editRequest = {
         messageId: editingMessageId,
@@ -183,7 +171,6 @@ export default function DashboardChat() {
         conversationId: activeChatId,
       };
 
-      // Bắn lên @MessageMapping("/chat.editMessage") ở Backend
       sendWSMessage("/app/chat.editMessage", editRequest);
 
       setInputText("");
@@ -196,14 +183,12 @@ export default function DashboardChat() {
       return;
     }
 
-    // Trường hợp 2: GỬI TIN NHẮN MỚI REALTIME
     const messageRequest = {
       conversationId: activeChatId,
       content: inputText.trim(),
       senderId: currentUserId,
     };
 
-    // Bắn lên @MessageMapping("/chat.sendMessage") ở Backend
     sendWSMessage("/app/chat.sendMessage", messageRequest);
     setInputText("");
   };
@@ -214,12 +199,10 @@ export default function DashboardChat() {
       conversationId: activeChatId,
     };
 
-    // Bắn lên @MessageMapping("/chat.recallMessage") ở Backend
     sendWSMessage("/app/chat.recallMessage", recallRequest);
     pushSystemNotification("Tin nhắn", "Tin nhắn đã được thu hồi.", "history");
   };
 
-  // --- HỘI NHÓM & THÀNH VIÊN (GIỮ NGUYÊN HTTP API) ---
   const handleAddMemberSubmit = async (data) => {
     try {
       const result = await addConversationMemberApi(activeChatId, data);
@@ -256,7 +239,6 @@ export default function DashboardChat() {
     }
   };
 
-  // --- FILTER CHAT & DATA MATCHING ---
   const filteredChatList = chatList.filter((chat) => {
     const matchesSearch = chat.name
       .toLowerCase()
