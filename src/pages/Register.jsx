@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-// 1. Import Link từ react-router-dom để kích hoạt tính năng chuyển trang siêu tốc
 import { Link, useNavigate } from "react-router-dom";
 import ghibliBg from "../assets/login2.png";
 import { registerApi } from "../api/api";
@@ -36,7 +35,6 @@ export default function Register() {
 
   return (
     <div className="min-h-screen font-body-md text-on-surface relative overflow-hidden flex items-center justify-center p-4">
-      {/* Background Image Layer */}
       <div className="absolute inset-0 z-0">
         <img
           alt="Ghibli Tree Background"
@@ -46,7 +44,6 @@ export default function Register() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-surface/20"></div>
       </div>
 
-      {/* Registration Card */}
       <div
         className="w-full max-w-[440px] rounded-xl p-8 sm:p-10 relative z-10 flex flex-col items-center"
         style={{
@@ -197,7 +194,6 @@ export default function Register() {
 
         {/* Footer Link */}
         <div className="mt-6 text-center">
-          {/* 2. Thay đổi thẻ <a> bằng <Link> và dùng thuộc tính "to" thay thế cho "href" */}
           <Link
             className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors underline decoration-outline-variant/50 underline-offset-4"
             to="/login"
