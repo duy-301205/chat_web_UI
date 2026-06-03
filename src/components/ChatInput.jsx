@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { sendWSMessage } from "../api/webSocketService"; // 🎯 Đã thêm: Import hàm gửi tin nhắn WS
+import { sendWSMessage } from "../api/webSocketService";
 
 export default function ChatInput({
   inputText,

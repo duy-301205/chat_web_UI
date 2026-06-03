@@ -8,18 +8,15 @@ export default function AddMemberModal({
   currentMembers = [], // Danh sách thành viên HIỆN TẠI của nhóm
   allFriends = [], // Danh sách bạn bè gốc ban đầu để lấy ngẫu nhiên
 }) {
-  // --- KHU VỰC KHAI BÁO HOOKS (Bắt buộc phải nằm trên cùng của Component) ---
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // 1. Gợi ý ban đầu: Lọc lấy danh sách bạn bè CHƯA vào nhóm từ database tĩnh
   const friendsNotInGroup = useMemo(() => {
     if (!allFriends) return [];
     return allFriends.filter((friend) => {
       return !currentMembers.some((m) => {
-        // CHỈNH SỬA TẠI ĐÂY: Đối chiếu friend.id (User ID gốc) với m.userId (trường mới thêm ở Backend)
         const friendId = String(friend.id || friend.userId || "");
         const memberUserId = String(m.userId || "");
         return friendId === memberUserId && friendId !== "";
@@ -27,13 +24,11 @@ export default function AddMemberModal({
     });
   }, [allFriends, currentMembers]);
 
-  // 2. Lấy ngẫu nhiên 3 người bạn bất kỳ từ danh sách chưa vào nhóm làm gợi ý mặc định
   const initialRandomSuggestions = useMemo(() => {
     if (friendsNotInGroup.length === 0) return [];
     return [...friendsNotInGroup].sort(() => 0.5 - Math.random()).slice(0, 3);
   }, [isOpen, friendsNotInGroup]);
 
-  // 3. Logic xử lý gọi API kết hợp bộ lọc bọc lót theo ký tự khớp tên cho Backend
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setSearchResults([]);
@@ -47,7 +42,6 @@ export default function AddMemberModal({
         if (result && result.code === 200) {
           const rawServerData = result.data || [];
 
-          // SỬA TẠI ĐÂY: Chỉ lọc những người thực sự khớp với ký tự gõ ô tìm kiếm
           const matchedResults = rawServerData.filter((friend) => {
             const friendName =
               friend.name || friend.nickName || friend.username || "";
@@ -68,12 +62,10 @@ export default function AddMemberModal({
 
   if (!isOpen) return null;
 
-  // 4. Xác định danh sách nạp vào vòng lặp hiển thị giao diện
   const displayFriends =
     searchQuery.trim() === "" ? initialRandomSuggestions : searchResults;
 
   const handleToggleSelect = (id, isAlreadyMember) => {
-    // Nếu đã ở trong nhóm rồi thì không cho kích hoạt chọn hoặc bỏ chọn
     if (isAlreadyMember) return;
 
     if (selectedIds.includes(id)) {
@@ -131,7 +123,6 @@ export default function AddMemberModal({
           />
         </div>
 
-        {/* Danh Sách Gợi Ý / Kết quả */}
         <div className="flex-1 overflow-y-auto my-3 space-y-1.5 pr-0.5">
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#434840]/60 ml-1 pb-0.5">
             {searchQuery.trim() === ""
@@ -148,7 +139,6 @@ export default function AddMemberModal({
               displayFriends.map((friend) => {
                 const isChecked = selectedIds.includes(friend.id);
 
-                // CHỈNH SỬA TẠI ĐÂY: Đối chiếu friend.id (User ID gốc từ API) với m.userId (Mã người dùng trong nhóm từ Backend)
                 const isAlreadyMember = currentMembers.some((m) => {
                   const friendId = String(friend.id || friend.userId || "");
                   const memberUserId = String(m.userId || "");
@@ -193,7 +183,6 @@ export default function AddMemberModal({
                       </div>
                     </div>
 
-                    {/* Ô tròn tích chọn trạng thái */}
                     <div
                       className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all shrink-0 ml-2 ${
                         isAlreadyMember
@@ -221,7 +210,6 @@ export default function AddMemberModal({
         </div>
       </div>
 
-      {/* Cụm nút xác nhận */}
       <div className="flex gap-2 pt-2 border-t border-[#c3c8bd]/10 shrink-0 w-full bg-[#fdfbf7]">
         <button
           type="button"
