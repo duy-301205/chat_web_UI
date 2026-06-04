@@ -26,6 +26,7 @@ import {
   getConversationMembersApi,
   addConversationMemberApi,
   leaveConversationApi,
+  updateNicknameApi,
 } from "../api/api";
 
 export default function DashboardChat() {
@@ -92,6 +93,7 @@ export default function DashboardChat() {
     setIsPartnerTyping("");
   }, [activeChatId]);
 
+  // ĐÃ TỐI ƯU: Chuẩn hóa dữ liệu thô, chống xung đột biến hoa/thường từ DTO Backend
   useEffect(() => {
     if (!activeChatId) {
       setMembers([]);
@@ -100,18 +102,33 @@ export default function DashboardChat() {
     const fetchMembers = async () => {
       try {
         const result = await getConversationMembersApi(activeChatId);
-        if (result.code === 200) setMembers(result.data || []);
+        if (result.code === 200 && result.data) {
+          const normalizedMembers = result.data.map((m) => {
+            const memberUserId = m.userId || m.id;
+            return {
+              userId: memberUserId,
+              username: m.username || "Ẩn danh",
+              nickname: m.nickname || m.nickName || "",
+              avatarUrl: m.avatarUrl || "https://i.pravatar.cc/100",
+              online: m.online || m.isOnline || false,
+              role: m.role || "MEMBER",
+              isYou: memberUserId
+                ? Number(memberUserId) === currentUserId
+                : false,
+            };
+          });
+          setMembers(normalizedMembers);
+        }
       } catch (error) {
         console.error("Lấy danh sách thành viên thất bại:", error.message);
       }
     };
     fetchMembers();
-  }, [activeChatId]);
+  }, [activeChatId, currentUserId]);
 
   useEffect(() => {
     if (!activeChatId) return;
 
-    // A. Nhận tin nhắn mới realtime
     const onMessageReceived = (newMsg) => {
       setMessages((prevMessages) => {
         if (prevMessages.some((m) => m.id === newMsg.id)) return prevMessages;
@@ -121,14 +138,12 @@ export default function DashboardChat() {
       });
     };
 
-    // B. Nhận tin nhắn cập nhật khi có người sửa bài
     const onMessageEdited = (editedMsg) => {
       setMessages((prevMessages) =>
         prevMessages.map((m) => (m.id === editedMsg.id ? editedMsg : m)),
       );
     };
 
-    // C. Nhận sự kiện thu hồi tin nhắn
     const onMessageRecalled = (recalledData) => {
       setMessages((prevMessages) =>
         prevMessages.map((m) =>
@@ -160,7 +175,8 @@ export default function DashboardChat() {
     return () => {
       disconnectWebSocket();
     };
-  }, [activeChatId]);
+  }, [activeChatId, currentUserId]);
+
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeChatId) return;
 
@@ -172,7 +188,6 @@ export default function DashboardChat() {
       };
 
       sendWSMessage("/app/chat.editMessage", editRequest);
-
       setInputText("");
       setEditingMessageId(null);
       pushSystemNotification(
@@ -213,7 +228,23 @@ export default function DashboardChat() {
           "group_add",
         );
         const res = await getConversationMembersApi(activeChatId);
-        if (res.code === 200) setMembers(res.data || []);
+        if (res.code === 200 && res.data) {
+          const normalized = res.data.map((m) => {
+            const memberUserId = m.userId || m.id;
+            return {
+              userId: memberUserId,
+              username: m.username || "Ẩn danh",
+              nickname: m.nickname || m.nickName || "",
+              avatarUrl: m.avatarUrl || "https://i.pravatar.cc/100",
+              online: m.online || m.isOnline || false,
+              role: m.role || "MEMBER",
+              isYou: memberUserId
+                ? Number(memberUserId) === currentUserId
+                : false,
+            };
+          });
+          setMembers(normalized);
+        }
         setIsAddMemberOpen(false);
       }
     } catch (error) {
@@ -236,6 +267,42 @@ export default function DashboardChat() {
       }
     } catch (error) {
       console.error("Rời nhóm thất bại:", error.message);
+    }
+  };
+
+  const handleUpdateNicknameSubmit = async (
+    conversationId,
+    userId,
+    newNickname,
+  ) => {
+    try {
+      const payload = {
+        conversationId: conversationId,
+        userId: userId,
+        nickname: newNickname,
+      };
+
+      await updateNicknameApi(payload);
+
+      setMembers((prevMembers) =>
+        prevMembers.map((m) =>
+          m.userId === userId
+            ? {
+                ...m,
+                nickname: newNickname.trim(),
+                nickName: newNickname.trim(),
+              }
+            : m,
+        ),
+      );
+
+      pushSystemNotification(
+        "Hội nhóm",
+        "Đã cập nhật biệt danh thành viên mới. ✨",
+        "badge",
+      );
+    } catch (error) {
+      console.error("Cập nhật biệt danh thất bại:", error.message);
     }
   };
 
@@ -265,7 +332,7 @@ export default function DashboardChat() {
       !members.some(
         (member) =>
           String(friend.id || friend.userId || "") ===
-          String(member.id || member.userId || ""),
+          String(member.userId || member.id || ""),
       ),
   );
 
@@ -341,7 +408,6 @@ export default function DashboardChat() {
               <EmptyChatState />
             ) : (
               <>
-                {/* Khung chat chính */}
                 <main className="flex-1 rounded-3xl bg-[rgba(253,251,247,0.9)] backdrop-blur-[12px] border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden relative z-10">
                   <ChatHeader
                     currentActiveChat={currentActiveChat}
@@ -372,7 +438,6 @@ export default function DashboardChat() {
                   />
                 </main>
 
-                {/* Sidebar phải */}
                 {isRightSidebarOpen && (
                   <RightSidebar
                     onClose={() => setIsRightSidebarOpen(false)}
@@ -385,6 +450,7 @@ export default function DashboardChat() {
                     friendsAvailableToAdd={friendsAvailableToAdd}
                     handleAddMemberSubmit={handleAddMemberSubmit}
                     handleLeaveGroupSubmit={handleLeaveGroupSubmit}
+                    handleUpdateNicknameSubmit={handleUpdateNicknameSubmit}
                   />
                 )}
               </>

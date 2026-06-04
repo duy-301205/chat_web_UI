@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import AddMemberModal from "./AddMemberModel";
 import ViewMembersModal from "./ViewMembersModal";
 
@@ -13,7 +13,15 @@ export default function RightSidebar({
   friendsAvailableToAdd,
   handleAddMemberSubmit,
   handleLeaveGroupSubmit,
+  handleUpdateNicknameSubmit,
 }) {
+  const [viewMembersMode, setViewMembersMode] = useState("VIEW"); // "VIEW" hoặc "EDIT"
+
+  const handleOpenViewMembers = (mode) => {
+    setViewMembersMode(mode);
+    setIsViewMembersOpen(true);
+  };
+
   return (
     <aside className="w-[280px] flex-shrink-0 rounded-3xl bg-white/90 border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col h-full overflow-hidden z-10 relative">
       <AddMemberModal
@@ -27,6 +35,9 @@ export default function RightSidebar({
         isOpen={isViewMembersOpen}
         onClose={() => setIsViewMembersOpen(false)}
         membersList={members}
+        mode={viewMembersMode}
+        conversationId={currentActiveChat?.id}
+        onUpdateNickname={handleUpdateNicknameSubmit}
       />
 
       <div className="h-[60px] flex items-center justify-between px-4 border-b border-[#c3c8bd]/10 shrink-0">
@@ -86,7 +97,7 @@ export default function RightSidebar({
               </span>
             </div>
             <div
-              onClick={() => setIsViewMembersOpen(true)}
+              onClick={() => handleOpenViewMembers("EDIT")}
               className="flex flex-col items-center gap-1 cursor-pointer group"
             >
               <div className="w-9 h-9 rounded-full bg-[#b0e0f6]/10 flex items-center justify-center text-[#b0e0f6] group-hover:bg-[#b0e0f6]/20 transition-colors">
@@ -119,7 +130,7 @@ export default function RightSidebar({
               Thành viên ({members.length})
             </h4>
             <button
-              onClick={() => setIsViewMembersOpen(true)}
+              onClick={() => handleOpenViewMembers("VIEW")}
               className="text-[#b0e0f6] text-xs font-medium hover:underline"
             >
               Xem tất cả
@@ -140,7 +151,7 @@ export default function RightSidebar({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-[#1c1c18] truncate">
-                    {member.nickName || member.username}{" "}
+                    {member.nickname || member.username}{" "}
                     {member.isYou && (
                       <span className="text-[#434840]/60 font-normal text-[10px]">
                         (Bạn)

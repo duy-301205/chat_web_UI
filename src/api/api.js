@@ -190,3 +190,10 @@ export const createConversationApi = async (data) => {
     });
 };
 
+export const updateNicknameApi = async (data) => {
+    return request("http://localhost:8086/api/conversations/member/nickname", {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify(data), // data chứa { conversationId: ..., userId: ..., nickname: "..." }
+    });
+};
