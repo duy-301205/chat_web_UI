@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-// IMPORT CHUẨN XÁC: Gọi các hàm API liên quan từ file quản lý chung
 import { getFriendsApi, createConversationApi } from "../api/api";
 
 export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {

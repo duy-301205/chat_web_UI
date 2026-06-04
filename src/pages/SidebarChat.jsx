@@ -58,7 +58,7 @@ export default function SidebarChat({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`p-1 rounded-lg transition-colors text-[#434840] flex items-center justify-center ${isDropdownOpen ? "bg-[#f0eee8]" : "hover:bg-[#f0eee8]"}`}
+            className={`p-1 rounded-lg transition-colors text-[#434840] flex items-center justify-center cursor-pointer ${isDropdownOpen ? "bg-[#f0eee8]" : "hover:bg-[#f0eee8]"}`}
           >
             <span className="material-symbols-outlined text-xl block">
               menu
@@ -69,22 +69,34 @@ export default function SidebarChat({
           </h1>
         </div>
 
-        <div className="flex items-center gap-1">
+        {/* CỤM NÚT: Đã đồng nhất kích thước + Ép cứng bàn tay cursor-pointer */}
+        <div className="flex items-center gap-2">
+          {/* Nút Tạo nhóm (3 người +) */}
           <button
             onClick={() => setIsCreateGroupOpen(true)}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] transition-colors relative cursor-pointer"
             title="Tạo nhóm trò chuyện mới"
           >
-            <span className="material-symbols-outlined text-lg">group_add</span>
+            <span className="material-symbols-outlined text-[22px] w-5 h-5 flex items-center justify-center">
+              groups
+            </span>
+            <span className="absolute top-1 right-1 text-[9px] font-black text-[#434840] leading-none select-none">
+              +
+            </span>
           </button>
 
+          {/* Nút Khám phá bạn mới (1 người +) */}
           <button
             onClick={() => setView(view === "spirits" ? "chat" : "spirits")}
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${view === "spirits" ? "bg-[#a8d5ba]/20 text-[#a8d5ba]" : "text-[#434840] hover:bg-[#f0eee8]"}`}
-            title="Khám phá linh hồn mới (Lưới Card)"
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+              view === "spirits"
+                ? "bg-[#a8d5ba]/20 text-[#a8d5ba]"
+                : "text-[#434840] hover:bg-[#f0eee8]"
+            }`}
+            title="Tìm kiếm bạn bè mới"
           >
-            <span className="material-symbols-outlined text-lg">
-              wb_twilight
+            <span className="material-symbols-outlined text-[20px] w-5 h-5 flex items-center justify-center">
+              person_add
             </span>
           </button>
         </div>
@@ -97,7 +109,7 @@ export default function SidebarChat({
                 setView("chat");
                 setIsDropdownOpen(false);
               }}
-              className={`w-full h-8 px-2.5 rounded-lg flex items-center gap-2 text-xs font-semibold transition-colors ${sidebarMenu === "cuoc_tro_chuyen" ? "bg-[#b0e0f6]/10 text-[#b0e0f6]" : "text-[#434840] hover:bg-[#f0eee8]/50"}`}
+              className={`w-full h-8 px-2.5 rounded-lg flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${sidebarMenu === "cuoc_tro_chuyen" ? "bg-[#b0e0f6]/10 text-[#b0e0f6]" : "text-[#434840] hover:bg-[#f0eee8]/50"}`}
             >
               <span className="material-symbols-outlined text-base">forum</span>
               Cuộc trò chuyện
@@ -107,7 +119,7 @@ export default function SidebarChat({
                 setSidebarMenu("ban_be");
                 setIsDropdownOpen(false);
               }}
-              className={`w-full h-8 px-2.5 rounded-lg flex items-center gap-2 text-xs font-semibold transition-colors ${sidebarMenu === "ban_be" ? "bg-[#b0e0f6]/10 text-[#b0e0f6]" : "text-[#434840] hover:bg-[#f0eee8]/50"}`}
+              className={`w-full h-8 px-2.5 rounded-lg flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${sidebarMenu === "ban_be" ? "bg-[#b0e0f6]/10 text-[#b0e0f6]" : "text-[#434840] hover:bg-[#f0eee8]/50"}`}
             >
               <span className="material-symbols-outlined text-base">group</span>
               Bạn bè
@@ -135,7 +147,7 @@ export default function SidebarChat({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 text-[#434840]/40 hover:text-[#434840]"
+              className="absolute right-3 text-[#434840]/40 hover:text-[#434840] cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">close</span>
             </button>
@@ -149,7 +161,7 @@ export default function SidebarChat({
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors uppercase tracking-wider ${activeTab === tab ? "bg-[#b0e0f6] text-white" : "text-[#434840] hover:bg-[#f0eee8]"}`}
+              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors uppercase tracking-wider cursor-pointer ${activeTab === tab ? "bg-[#b0e0f6] text-white" : "text-[#434840] hover:bg-[#f0eee8]"}`}
             >
               {tab === "all"
                 ? "Tất cả"
@@ -189,7 +201,7 @@ export default function SidebarChat({
                 </div>
                 <button
                   onClick={() => handleAddFriend(user)}
-                  className="h-6 px-2.5 bg-[#a8d5ba] text-white rounded-full text-[10px] font-bold shadow-sm hover:bg-[#97c4a9] transition-all flex items-center gap-1 shrink-0 ml-2"
+                  className="h-6 px-2.5 bg-[#a8d5ba] text-white rounded-full text-[10px] font-bold shadow-sm hover:bg-[#97c4a9] transition-all flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-xs">
                     person_add
@@ -362,7 +374,7 @@ export default function SidebarChat({
             setIsNotificationOpen(!isNotificationOpen);
             setIsDropdownOpen(false);
           }}
-          className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors relative ${isNotificationOpen ? "bg-[#a8d5ba]/20 text-[#a8d5ba]" : "text-[#434840] hover:bg-[#f0eee8]"}`}
+          className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors relative cursor-pointer ${isNotificationOpen ? "bg-[#a8d5ba]/20 text-[#a8d5ba]" : "text-[#434840] hover:bg-[#f0eee8]"}`}
         >
           <span className="material-symbols-outlined text-lg">
             notifications
@@ -376,7 +388,7 @@ export default function SidebarChat({
             setIsNotificationOpen(false);
             setIsDropdownOpen(false);
           }}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] rounded-full transition-colors"
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] rounded-full transition-colors cursor-pointer"
         >
           <span className="material-symbols-outlined text-lg">settings</span>
         </button>

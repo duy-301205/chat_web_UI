@@ -189,3 +189,4 @@ export const createConversationApi = async (data) => {
         body: JSON.stringify(data), // data chứa { type: "GROUP", name: "...", participantIds: [...] }
     });
 };
+
