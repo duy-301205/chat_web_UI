@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react"; // Đã thêm useState
 
 export default function MessageList({
   messages,
@@ -7,6 +7,49 @@ export default function MessageList({
   isPartnerTyping, // 🎯 Đã đồng bộ nhận String tên người dùng
 }) {
   const currentUserId = Number(localStorage.getItem("userId"));
+
+  // Tạo một điểm neo (Ref) ở đáy danh sách chat và Ref quản lý khung cuộn
+  const messagesEndRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Trạng thái hiển thị nút "Cuộn xuống tin nhắn mới"
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+
+  // 1. CHỨC NĂNG TỰ ĐỘNG CUỘN HOẶC HIỆN NÚT KHI CÓ TIN NHẮN MỚI
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    // Kiểm tra xem người dùng có đang ở sát đáy chat không (cách đáy dưới 300px)
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 300;
+
+    if (isAtBottom) {
+      // Nếu đang ở sát đáy, tự động cuộn xuống mượt mà luôn
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setShowScrollBtn(false);
+    } else {
+      // Nếu người dùng đang kéo lên tít trên đọc tin nhắn cũ, hiện nút thông báo tin nhắn mới
+      setShowScrollBtn(true);
+    }
+  }, [messages]); // Chạy mỗi khi mảng messages thay đổi (có tin nhắn mới hoặc thu hồi/sửa)
+
+  // 2. THEO DÕI HÀNH VI CUỘN CHUỘT CỦA NGƯỜI DÙNG ĐỂ ẨN/HIỆN NÚT
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    // Nếu người dùng chủ động tự kéo chuột xuống sát đáy, ẩn nút đi
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+    if (isAtBottom) {
+      setShowScrollBtn(false);
+    }
+  };
+
+  // 3. HÀM XỬ LÝ KHI CLICK VÀO NÚT TIN NHẮN MỚI
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowScrollBtn(false);
+  };
 
   const formatMessageGroupDate = (dateString) => {
     const messageDate = new Date(dateString);
@@ -25,7 +68,32 @@ export default function MessageList({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 bg-[#fdfbf7]/50">
+    <div
+      ref={containerRef} // Gắn ref quản lý khung cuộn
+      onScroll={handleScroll} // Lắng nghe sự kiện cuộn chuột
+      className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 bg-[#fdfbf7]/50 relative" // Thêm relative để ghim nút định vị float
+      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+    >
+      {/* Ẩn con lăn của Chrome/Safari */}
+      <style>{`
+        div::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+
+      {/* --- GIAO DIỆN NÚT TIN NHẮN MỚI (FLOAT BUTTON) --- */}
+      {showScrollBtn && (
+        <button
+          onClick={scrollToBottom}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-[#a8d5ba] text-white font-bold text-xs px-4 py-2 rounded-full shadow-lg border border-white/40 flex items-center gap-1.5 hover:bg-[#97c4a9] active:scale-95 transition-all animate-bounce"
+        >
+          <span className="material-symbols-outlined text-sm">
+            arrow_downward
+          </span>
+          Tin nhắn mới nhất
+        </button>
+      )}
+
       {messages.map((message, index) => {
         const isMine = Number(message.senderId) === currentUserId;
         const currentMsgDate = new Date(message.createdAt).toDateString();
@@ -47,7 +115,6 @@ export default function MessageList({
 
             {message.type === "SYSTEM" || !message.senderId ? (
               <div className="flex justify-center my-2.5 animate-in fade-in duration-300 w-full">
-                {/* ĐÃ SỬA: Đặt ID vào đúng khung text nhỏ của tin nhắn hệ thống */}
                 <div
                   id={`msg-${message.id}`}
                   className="px-3 py-0.5 rounded-full bg-[#f0eee8]/60 border border-[#c3c8bd]/20 text-[11px] text-[#434840]/70 flex items-center gap-1.5 shadow-sm transition-all duration-300 origin-center"
@@ -84,7 +151,6 @@ export default function MessageList({
                   <div
                     className={`flex items-center gap-1.5 ${isMine ? "flex-row-reverse" : ""}`}
                   >
-                    {/* ĐÃ SỬA: Di chuyển id từ div ngoài cùng xuống trúng cái phao/khung nền chứa chữ này */}
                     <div
                       id={`msg-${message.id}`}
                       className={`rounded-[14px] shadow-[0_1px_4px_rgba(0,0,0,0.02)] px-3 py-2 transition-all duration-300 origin-center ${
@@ -151,10 +217,8 @@ export default function MessageList({
         );
       })}
 
-      {/* 🎯 ĐYÀ RỒI: Đã cập nhật giao diện hiển thị Tên người đang gõ */}
       {isPartnerTyping && (
         <div className="flex flex-col gap-1 max-w-[75%] animate-in fade-in slide-in-from-bottom-2 duration-200 self-start">
-          {/* Hiện tên cụ thể của người gõ */}
           <span className="text-[11px] text-[#434840]/60 ml-1 italic">
             {isPartnerTyping} đang nhập...
           </span>
@@ -167,6 +231,8 @@ export default function MessageList({
           </div>
         </div>
       )}
+
+      <div ref={messagesEndRef} />
     </div>
   );
 }
