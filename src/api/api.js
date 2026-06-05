@@ -1,218 +1,231 @@
-const API_BASE_URL = "http://localhost:8086/api/auth";
+import axios from "axios";
 
-const request = async (url, options) => {
-    const response = await fetch(url, options);
-    const result = await response.json();
+const API_BASE_URL = "http://localhost:8086/api";
 
-    if (!response.ok || result.code !== 200) {
-        throw new Error(result.message || "API_ERROR");
-    }
-
-    return result;
-};
-
-const authHeaders = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+// --- 1. KHỞI TẠO AXIOS CLIENT ---
+const apiClient = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
 });
 
-export const loginApi = async (data) => {
-    return request(`${API_BASE_URL}/login`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
     });
+    failedQueue = [];
+};
+
+// --- 2. BỘ CHẶN REQUEST: TỰ ĐỘNG ĐÍNH KÈM ACCESS TOKEN ---
+apiClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+// --- 3. BỘ CHẶN RESPONSE: TỰ ĐỘNG REFRESH REAL-TIME KHI TOKEN HẾT HẠN (401) ---
+apiClient.interceptors.response.use(
+    (response) => {
+        // Trả về trực tiếp phần dữ liệu JSON từ Server { code, message, data }
+        return response.data;
+    },
+    async (error) => {
+        const originalRequest = error.config;
+
+        // Nếu HTTP Status là 401 Unauthorized (Mã thông báo hết hạn)
+        if (error.response?.status === 401 && !originalRequest._retry) {
+
+            // Ngăn chặn vòng lặp vô hạn: Nếu chính request refresh cũng bị 401 -> Logout luôn
+            if (originalRequest.url.includes("/auth/refresh")) {
+                handleLogout();
+                return Promise.reject(error);
+            }
+
+            // Nếu đang có một request khác đi làm mới token, bắt request này xếp hàng đợi
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then((token) => {
+                        originalRequest.headers.Authorization = `Bearer ${token}`;
+                        return apiClient(originalRequest);
+                    })
+                    .catch((err) => Promise.reject(err));
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const currentRefreshToken = localStorage.getItem("refreshToken");
+
+                    // Gọi API làm mới token sang Endpoint AuthController của bạn
+                    // Sử dụng instance axios gốc để tránh bị bộ chặn request can thiệp đính kèm token cũ
+                    const res = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+                        refreshToken: currentRefreshToken, // Gửi đúng trường tương thích với RefreshTokenRequest.java
+                    });
+
+                    // Cấu trúc phản hồi từ ApiResponse mẫu của bạn: res.data.code === 200
+                    if (res.data && res.data.code === 200) {
+                        // Trích xuất dữ liệu từ lớp bọc `.data` (khớp với LoginResponse.java)
+                        const { accessToken, refreshToken: newRefreshToken } = res.data.data;
+
+                        // Cập nhật lại cặp mã thông báo mới vào bộ nhớ
+                        localStorage.setItem("accessToken", accessToken);
+                        if (newRefreshToken) {
+                            localStorage.setItem("refreshToken", newRefreshToken);
+                        }
+
+                        // Thay mã thông báo mới vào request đang bị hoãn
+                        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+                        // Kích hoạt lại toàn bộ các request đang nằm trong hàng đợi
+                        processQueue(null, accessToken);
+
+                        // Thực thi lại request ban đầu và trả về dữ liệu cho luồng Front-end
+                        resolve(apiClient(originalRequest));
+                    } else {
+                        handleLogout();
+                        reject(error);
+                    }
+                } catch (refreshError) {
+                    processQueue(refreshError, null);
+                    handleLogout();
+                    reject(refreshError);
+                } finally {
+                    isRefreshing = false;
+                }
+            });
+        }
+
+        // Ném lỗi về định dạng chuỗi tin nhắn để các khối catch ở file giao diện hiển thị được
+        const errorResult = error.response?.data || {};
+        return Promise.reject(new Error(errorResult.message || "API_ERROR"));
+    }
+);
+
+const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("userId");
+    window.location.href = "/login";
+};
+
+// --- 4. DANH SÁCH CÁC API HOÀN CHỈNH ---
+
+export const loginApi = async (data) => {
+    return apiClient.post("/auth/login", data);
 };
 
 export const registerApi = async (data) => {
-    return request(`${API_BASE_URL}/register`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    });
+    return apiClient.post("/auth/register", data);
 };
 
 export const getConversationsApi = async () => {
-    return request("http://localhost:8086/api/conversations", {
-        method: "GET",
-        headers: authHeaders(),
-    });
+    return apiClient.get("/conversations");
 };
 
 export const getMessagesByConversationApi = async (conversationId) => {
-    return request(
-        `http://localhost:8086/api/messages/conversation/${conversationId}`,
-        {
-            method: "GET",
-            headers: authHeaders(),
-        }
-    );
+    return apiClient.get(`/messages/conversation/${conversationId}`);
 };
 
 export const getConversationMembersApi = async (conversationId) => {
-    return request(
-        `http://localhost:8086/api/conversations/${conversationId}/members`,
-        {
-            method: "GET",
-            headers: authHeaders(),
-        }
-    );
+    return apiClient.get(`/conversations/${conversationId}/members`);
 };
 
 export const addConversationMemberApi = async (conversationId, data) => {
-    return request(
-        `http://localhost:8086/api/conversations/${conversationId}/members`,
-        {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify(data),
-        }
-    );
+    return apiClient.post(`/conversations/${conversationId}/members`, data);
 };
 
-export const removeConversationMemberApi = async (
-    conversationId,
-    userId
-) => {
-    return request(
-        `http://localhost:8086/api/conversations/${conversationId}/members/${userId}`,
-        {
-            method: "DELETE",
-            headers: authHeaders(),
-        }
-    );
+export const removeConversationMemberApi = async (conversationId, userId) => {
+    return apiClient.delete(`/conversations/${conversationId}/members/${userId}`);
 };
 
 export const leaveConversationApi = async (conversationId) => {
-    return request(
-        `http://localhost:8086/api/conversations/${conversationId}/leave`,
-        {
-            method: "POST",
-            headers: authHeaders(),
-        }
-    );
+    return apiClient.post(`/conversations/${conversationId}/leave`);
 };
 
 export const sendMessageApi = async (formData) => {
-    return request("http://localhost:8086/api/messages", {
-        method: "POST",
+    return apiClient.post("/messages", formData, {
         headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            "Content-Type": "multipart/form-data",
         },
-        body: formData,
     });
 };
 
-// API: Chỉnh sửa nội dung tin nhắn văn bản
 export const editMessageApi = async (data) => {
-    return request("http://localhost:8086/api/messages/edit", {
-        method: "PUT",
-        headers: authHeaders(),
-        body: JSON.stringify(data),
-    });
+    return apiClient.put("/messages/edit", data);
 };
 
-// API: Thu hồi tin nhắn theo ID
 export const recallMessageApi = async (messageId) => {
-    return request(`http://localhost:8086/api/messages/${messageId}/recall`, {
-        method: "POST", // Hoặc "DELETE" tùy cấu hình Backend, mặc định POST theo đặc tả URL của bạn
-        headers: authHeaders(),
-    });
+    return apiClient.post(`/messages/${messageId}/recall`);
 };
 
 export const searchUsersApi = async (data) => {
-    return request("http://localhost:8086/api/users/search", {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify(data), // data chứa { keyword: "..." }
-    });
+    return apiClient.post("/users/search", data);
 };
 
-// API: Gửi lời mời kết bạn đến một người dùng theo ID
 export const requestFriendApi = async (targetUserId) => {
-    return request(`http://localhost:8086/api/friendships/request/${targetUserId}`, {
-        method: "POST",
-        headers: authHeaders(),
-    });
+    return apiClient.post(`/friendships/request/${targetUserId}`);
 };
-
 
 export const acceptFriendRequest = async (targetUserId) => {
-    return request(`http://localhost:8086/api/friendships/accept/${targetUserId}`, {
-        method: "POST",
-        headers: authHeaders(),
-    });
+    return apiClient.post(`/friendships/accept/${targetUserId}`);
 };
 
-// Endpoint: DELETE http://localhost:8086/api/friendships/remove/{targetUserId}
 export const removeFriend = async (targetUserId) => {
-    return request(`http://localhost:8086/api/friendships/remove/${targetUserId}`, {
-        method: "DELETE", // Sử dụng đúng phương thức DELETE khớp với Controller Java
-        headers: authHeaders(),
-    });
+    return apiClient.delete(`/friendships/remove/${targetUserId}`);
 };
 
 export const getPendingRequestsApi = async () => {
-    return request("http://localhost:8086/api/friendships/requests/pending", {
-        method: "GET",
-        headers: authHeaders(),
-    });
+    return apiClient.get("/friendships/requests/pending");
 };
 
 export const getFriendsApi = async (searchQuery = "") => {
-    // Nếu có tham số tìm kiếm, dùng searchUsersApi để tìm kiếm
     if (searchQuery.trim() !== "") {
         return searchUsersApi({ keyword: searchQuery });
     }
-    // Nếu không có tham số tìm kiếm, lấy toàn bộ danh sách bạn bè
-    return request("http://localhost:8086/api/friendships/friends", {
-        method: "GET",
-        headers: authHeaders(),
-    });
+    return apiClient.get("/friendships/friends");
 };
 
 export const getOrCreatePrivateChatApi = async (targetUserId) => {
-    return request(`http://localhost:8086/api/conversations/private/${targetUserId}`, {
-        method: "POST",
-        headers: authHeaders(),
-    });
+    return apiClient.post(`/conversations/private/${targetUserId}`);
 };
 
 export const createConversationApi = async (data) => {
-    return request("http://localhost:8086/api/conversations", {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify(data), // data chứa { type: "GROUP", name: "...", participantIds: [...] }
-    });
+    return apiClient.post("/conversations", data);
 };
 
 export const updateNicknameApi = async (data) => {
-    return request("http://localhost:8086/api/conversations/member/nickname", {
-        method: "PUT",
-        headers: authHeaders(),
-        body: JSON.stringify(data), // data chứa { conversationId: ..., userId: ..., nickname: "..." }
-    });
+    return apiClient.put("/conversations/member/nickname", data);
 };
 
 export const searchMessagesApi = async (conversationId, keyword) => {
     const encodedKeyword = encodeURIComponent(keyword.trim());
-
-    return request(
-        `http://localhost:8086/api/messages/searchMessage?conversationId=${conversationId}&keyword=${encodedKeyword}`,
-        {
-            method: "GET",
-            headers: authHeaders(),
-        }
-    );
+    return apiClient.get(`/messages/searchMessage?conversationId=${conversationId}&keyword=${encodedKeyword}`);
 };
 
 export const getMyProfileApi = async () => {
-    return request("http://localhost:8086/api/users/me", {
-        method: "GET",
-        headers: authHeaders(),
+    return apiClient.get("/users/me");
+};
+
+export const seenMessageApi = async (conversationId, messageId) => {
+    return apiClient.put("/messages/seen", {
+        conversationId: conversationId,
+        messageId: messageId
     });
 };

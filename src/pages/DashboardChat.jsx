@@ -49,16 +49,13 @@ export default function DashboardChat() {
   const [isPartnerTyping, setIsPartnerTyping] = useState("");
   const currentUserId = Number(localStorage.getItem("userId"));
 
-  // --- ĐÃ TỐI ƯU: CẬP NHẬT LẠI HIỆU ỨNG CHỈ BÔI KHUNG CHỨA TIN NHẮN ---
+  // --- HIỆU ỨNG CHỈ BÔI KHUNG CHỨA TIN NHẮN ---
   const handleJumpToMessage = (messageId) => {
-    // Tìm phần tử khung chữ tin nhắn dựa trên ID đã hạ cấp xuống MessageList
     const element = document.getElementById(`msg-${messageId}`);
 
     if (element) {
-      // Cuộn màn hình mượt mà đưa tin nhắn đó vào vị trí chính giữa khung chat
       element.scrollIntoView({ behavior: "smooth", block: "center" });
 
-      // Thêm class màu nền nhấp nháy tạm thời để highlight làm nổi bật tin nhắn cần tìm
       element.classList.add(
         "!bg-yellow-200/80",
         "ring-2",
@@ -66,7 +63,6 @@ export default function DashboardChat() {
         "scale-[1.02]",
       );
 
-      // Tự động gỡ bỏ sau 2 giây để trả lại màu gốc (trắng/xanh lá) của tin nhắn
       setTimeout(() => {
         element.classList.remove(
           "!bg-yellow-200/80",
@@ -113,6 +109,8 @@ export default function DashboardChat() {
         const sortedMessages = [...(result.data.content || [])].sort(
           (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         );
+
+        console.log("🔍 CẤU TRÚC TIN NHẮN TỪ BACKEND ĐỔ VỀ:", sortedMessages);
         setMessages(sortedMessages);
       }
     } catch (error) {
@@ -120,10 +118,37 @@ export default function DashboardChat() {
     }
   };
 
+  // Luồng 1: Chỉ xử lý kéo API làm tươi dữ liệu khi đổi phòng
   useEffect(() => {
     fetchMessages();
     setIsPartnerTyping("");
   }, [activeChatId]);
+
+  useEffect(() => {
+    if (!activeChatId || !messages || messages.length === 0) return;
+
+    // Lấy tin nhắn cuối cùng thực tế đang có trong khung chat (Ví dụ tin nhắn "F")
+    const lastMsg = messages[messages.length - 1];
+
+    console.log(
+      "🎯 Thực hiện gửi tín hiệu Đã xem cho tin nhắn cuối cùng ID:",
+      lastMsg.id,
+    );
+
+    sendWSMessage("/app/chat.seen", {
+      conversationId: Number(activeChatId),
+      messageId: Number(lastMsg.id),
+    });
+
+    // Ép trực tiếp state số tin chưa đọc của phòng này về 0 ngay lập tức trên UI
+    setChatList((prevList) =>
+      prevList.map((chat) =>
+        Number(chat.id) === Number(activeChatId)
+          ? { ...chat, unreadCount: 0 }
+          : chat,
+      ),
+    );
+  }, [messages, activeChatId, currentUserId]);
 
   useEffect(() => {
     if (!activeChatId) {
@@ -146,6 +171,8 @@ export default function DashboardChat() {
               isYou: memberUserId
                 ? Number(memberUserId) === currentUserId
                 : false,
+              lastSeenMessageId:
+                m.lastSeenMessageId || m.lastMessageSeenId || null,
             };
           });
           setMembers(normalizedMembers);
@@ -157,32 +184,88 @@ export default function DashboardChat() {
     fetchMembers();
   }, [activeChatId, currentUserId]);
 
+  // --- THỰC HIỆN ĐỒNG BỘ REALTIME QUA WEBSOCKET ---
   useEffect(() => {
     if (!activeChatId) return;
 
     const onMessageReceived = (newMsg) => {
-      setMessages((prevMessages) => {
-        if (prevMessages.some((m) => m.id === newMsg.id)) return prevMessages;
-        return [...prevMessages, newMsg].sort(
-          (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+      // 1. 🎯 SỬA: Bảo đảm luôn ép kiểu Number toàn diện để nổ tin nhắn realtime vào khung chat giữa
+      if (Number(newMsg.conversationId) === Number(activeChatId)) {
+        setMessages((prevMessages) => {
+          if (prevMessages.some((m) => m.id === newMsg.id)) return prevMessages;
+          return [...prevMessages, newMsg].sort(
+            (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+          );
+        });
+      }
+
+      // 2. Cập nhật nội dung tin nhắn và đẩy phòng chat lên đầu danh sách thanh Sidebar bên trái
+      setChatList((prevList) => {
+        const existingChat = prevList.find(
+          (chat) => Number(chat.id) === Number(newMsg.conversationId),
         );
+
+        if (existingChat) {
+          const isCurrentActiveChat =
+            Number(newMsg.conversationId) === Number(activeChatId);
+          const isFromMe = Number(newMsg.senderId) === currentUserId;
+
+          // Nếu tin nhắn từ người khác gửi đến và mình đang không mở trực tiếp phòng chat đó thì tăng số tin chưa đọc lên 1
+          const newUnreadCount =
+            !isFromMe && !isCurrentActiveChat
+              ? (existingChat.unreadCount || 0) + 1
+              : 0;
+
+          const updatedChat = {
+            ...existingChat,
+            lastMessage: newMsg.content,
+            lastMessageSenderId: newMsg.senderId,
+            lastMessageSenderName: isFromMe
+              ? "You"
+              : newMsg.senderName || "Thành viên",
+            lastMessageAt: newMsg.createdAt,
+            unreadCount: newUnreadCount,
+          };
+
+          const remainingChats = prevList.filter(
+            (chat) => Number(chat.id) !== Number(newMsg.conversationId),
+          );
+          return [updatedChat, ...remainingChats];
+        }
+
+        return prevList;
       });
+
+      // 3. Tự động gửi tín hiệu đã xem nếu bạn đang mở trực tiếp chính phòng chat đó
+      if (
+        Number(newMsg.senderId) !== currentUserId &&
+        Number(newMsg.conversationId) === Number(activeChatId)
+      ) {
+        sendWSMessage("/app/chat.seen", {
+          conversationId: Number(activeChatId),
+          messageId: Number(newMsg.id),
+        });
+      }
     };
 
     const onMessageEdited = (editedMsg) => {
-      setMessages((prevMessages) =>
-        prevMessages.map((m) => (m.id === editedMsg.id ? editedMsg : m)),
-      );
+      if (Number(editedMsg.conversationId) === Number(activeChatId)) {
+        setMessages((prevMessages) =>
+          prevMessages.map((m) => (m.id === editedMsg.id ? editedMsg : m)),
+        );
+      }
     };
 
     const onMessageRecalled = (recalledData) => {
-      setMessages((prevMessages) =>
-        prevMessages.map((m) =>
-          m.id === recalledData.messageId
-            ? { ...m, isDeleted: true, content: "Tin nhắn đã bị xóa" }
-            : m,
-        ),
-      );
+      if (Number(recalledData.conversationId) === Number(activeChatId)) {
+        setMessages((prevMessages) =>
+          prevMessages.map((m) =>
+            m.id === recalledData.messageId
+              ? { ...m, isDeleted: true, content: "Tin nhắn đã bị xóa" }
+              : m,
+          ),
+        );
+      }
     };
 
     const onUserTyping = (typingData) => {
@@ -195,17 +278,45 @@ export default function DashboardChat() {
       }
     };
 
+    const onMessageSeenReceived = (seenData) => {
+      console.log(
+        "👁️ WebSocket nhận tín hiệu trạng thái đã xem (Realtime):",
+        seenData,
+      );
+
+      setChatList((prevList) =>
+        prevList.map((chat) =>
+          Number(chat.id) === Number(seenData.conversationId)
+            ? { ...chat, unreadCount: 0 }
+            : chat,
+        ),
+      );
+
+      setMembers((prevMembers) =>
+        prevMembers.map((m) =>
+          Number(m.userId) === Number(seenData.userId || seenData.senderId)
+            ? { ...m, lastSeenMessageId: seenData.messageId }
+            : m,
+        ),
+      );
+    };
+
+    const subscribedIds = chatList.map((c) => c.id);
+
     connectWebSocket(
       activeChatId,
+      subscribedIds,
       onMessageReceived,
       onMessageEdited,
       onMessageRecalled,
       onUserTyping,
+      onMessageSeenReceived,
     );
 
     return () => {
       disconnectWebSocket();
     };
+    // 🎯 ĐÃ SỬA: Đưa activeChatId vào đây để hàm callback đồng bộ chính xác phòng đang mở thời gian thực
   }, [activeChatId, currentUserId]);
 
   const handleSendMessage = async () => {
@@ -342,7 +453,7 @@ export default function DashboardChat() {
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
-    if (activeTab === "unread") return chat.unread > 0;
+    if (activeTab === "unread") return chat.unreadCount > 0;
     if (activeTab === "group") return chat.type === "GROUP";
     return true;
   });
@@ -413,7 +524,6 @@ export default function DashboardChat() {
             }
           />
         ) : view === "profile" ? (
-          // ĐÃ SỬA TẠI ĐÂY: Loại bỏ hoàn toàn prop userData={userData} để chuyển sang lấy dữ liệu thật từ API Backend
           <MyProfile onBack={() => setView("chat")} />
         ) : view === "garden" ? (
           <main className="flex-1 rounded-3xl bg-[rgba(253,251,247,0.7)] backdrop-blur-[12px] border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col items-center justify-center text-center p-6 z-10">
@@ -450,6 +560,7 @@ export default function DashboardChat() {
                   />
                   <MessageList
                     messages={messages}
+                    members={members}
                     isPartnerTyping={isPartnerTyping}
                     onStartEdit={(msg) => {
                       if (!msg.isDeleted) {

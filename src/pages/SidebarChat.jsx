@@ -69,9 +69,8 @@ export default function SidebarChat({
           </h1>
         </div>
 
-        {/* CỤM NÚT: Đã đồng nhất kích thước + Ép cứng bàn tay cursor-pointer */}
         <div className="flex items-center gap-2">
-          {/* Nút Tạo nhóm (3 người +) */}
+          {/* Nút Tạo nhóm */}
           <button
             onClick={() => setIsCreateGroupOpen(true)}
             className="w-8 h-8 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] transition-colors relative cursor-pointer"
@@ -85,7 +84,7 @@ export default function SidebarChat({
             </span>
           </button>
 
-          {/* Nút Khám phá bạn mới (1 người +) */}
+          {/* Nút Khám phá bạn mới */}
           <button
             onClick={() => setView(view === "spirits" ? "chat" : "spirits")}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
@@ -239,7 +238,7 @@ export default function SidebarChat({
                     <img
                       alt={chat.name}
                       className="w-full h-full object-cover"
-                      src={chat.avatar}
+                      src={chat.avatarUrl || chat.avatar}
                     />
                     {chat.isOnline && (
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border border-white rounded-full"></div>
@@ -257,21 +256,21 @@ export default function SidebarChat({
                       </span>
                     </div>
                     <p className="text-xs text-[#434840] truncate">
-                      {chat.lastMessageSenderName !== "SYSTEM" &&
-                        chat.sender && (
-                          <span className="font-medium text-[#1c1c18]">
-                            {chat.sender}{" "}
-                          </span>
-                        )}
-                      {typeof chat.lastMessage === "object" &&
-                      chat.lastMessage !== null
-                        ? chat.lastMessage.content
-                        : chat.lastMessage || "Chưa có tin nhắn nào... 🍃"}
+                      {chat.lastMessageSenderName && (
+                        <span className="font-semibold text-[#1c1c18]/80mr-1">
+                          {chat.lastMessageSenderName === "You"
+                            ? "Bạn: "
+                            : `${chat.lastMessageSenderName}: `}
+                        </span>
+                      )}
+                      {/* 🎯 ĐÃ SỬA: Đọc chuỗi phẳng thuần túy, loại bỏ hoàn toàn logic Object lồng nhau cũ gây lỗi đơ Sidebar */}
+                      {chat.lastMessage || "Chưa có tin nhắn nào... 🍃"}
                     </p>
                   </div>
-                  {chat.unread > 0 && (
-                    <div className="w-4 h-4 rounded-full bg-[#b0e0f6] text-white text-[9px] font-bold flex items-center justify-center shrink-0 ml-2">
-                      {chat.unread}
+
+                  {chat.unreadCount > 0 && (
+                    <div className="w-4 h-4 rounded-full bg-[#b0e0f6] text-white text-[9px] font-bold flex items-center justify-center shrink-0 ml-2 animate-pulse">
+                      {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                     </div>
                   )}
                 </div>
@@ -388,7 +387,7 @@ export default function SidebarChat({
             setIsNotificationOpen(false);
             setIsDropdownOpen(false);
           }}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] rounded-full transition-colors cursor-pointer"
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] transition-colors cursor-pointer"
         >
           <span className="material-symbols-outlined text-lg">settings</span>
         </button>

@@ -11,6 +11,8 @@ export default function ChatInput({
   currentUserId,
 }) {
   const typingTimeoutRef = useRef(null);
+  // 🎯 Thêm ref này để chặn không cho WebSocket bắn liên tục tín hiệu "true" khi gõ chữ liên tục
+  const isTypingRef = useRef(false);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -25,8 +27,12 @@ export default function ChatInput({
 
   const sendTypingStatus = (isTyping) => {
     if (!activeChatId || !currentUserId) return;
+
+    // Lưu lại trạng thái hiện tại để chặn gửi trùng
+    isTypingRef.current = isTyping;
+
     sendWSMessage("/app/chat.typing", {
-      conversationId: activeChatId,
+      conversationId: Number(activeChatId), // Ép kiểu số chuẩn
       userId: currentUserId,
       isTyping: isTyping,
     });
@@ -36,22 +42,36 @@ export default function ChatInput({
     const value = e.target.value;
     setInputText(value);
 
+    // Đang sửa tin nhắn cũ thì không kích hoạt trạng thái "Đang gõ..."
     if (editingMessageId) return;
 
     if (value.trim().length > 0) {
-      sendTypingStatus(true);
+      // 🎯 Chỉ gửi lên Server một lần duy nhất khi bắt đầu chuỗi gõ chữ
+      if (!isTypingRef.current) {
+        sendTypingStatus(true);
+      }
+
+      // Thiết lập cơ chế Debounce tự tắt sau 3 giây ngừng gõ
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        sendTypingStatus(false);
+      }, 3000);
+    } else {
+      // 🎯 ĐÃ SỬA: Nếu người dùng xóa sạch chữ trong ô input, tắt ngay lập tức chữ "Đang gõ..." bên máy đối phương
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current) {
+        sendTypingStatus(false);
+      }
     }
-
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-    typingTimeoutRef.current = setTimeout(() => {
-      sendTypingStatus(false);
-    }, 3000);
   };
 
+  // Tự động tắt trạng thái gõ khi người dùng đột ngột đổi sang phòng chat khác
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current) {
+        sendTypingStatus(false);
+      }
     };
   }, [activeChatId]);
 
@@ -70,7 +90,7 @@ export default function ChatInput({
               setEditingMessageId(null);
               setInputText("");
             }}
-            className="text-[10px] underline hover:text-red-500 transition-colors"
+            className="text-[10px] underline hover:text-red-500 transition-colors cursor-pointer"
           >
             Hủy bỏ
           </button>
@@ -87,24 +107,24 @@ export default function ChatInput({
           }
           type="text"
           value={inputText}
-          onChange={handleInputChange} //
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
         />
         <div className="flex items-center gap-0.5 text-[#434840]/70 px-1">
-          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0eee8] transition-colors">
+          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0eee8] transition-colors cursor-pointer">
             <span className="material-symbols-outlined text-[18px]">
               sentiment_satisfied
             </span>
           </button>
-          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0eee8] transition-colors">
+          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0eee8] transition-colors cursor-pointer">
             <span className="material-symbols-outlined text-[18px]">
               attach_file
             </span>
           </button>
-          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0eee8] transition-colors">
+          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0eee8] transition-colors cursor-pointer">
             <span className="material-symbols-outlined text-[18px]">image</span>
           </button>
-          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0eee8] transition-colors">
+          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0eee8] transition-colors cursor-pointer">
             <span className="material-symbols-outlined text-[18px]">
               gif_box
             </span>
@@ -126,7 +146,7 @@ export default function ChatInput({
         >
           <span
             className="material-symbols-outlined text-[18px]"
-            style={{ fontVariationSettings: "'FILL' 1'" }}
+            style={{ fontVariationSettings: "'FILL' 1" }}
           >
             {editingMessageId ? "check" : "send"}
           </span>
