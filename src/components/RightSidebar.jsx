@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AddMemberModal from "./AddMemberModel";
 import ViewMembersModal from "./ViewMembersModal";
+import { searchMessagesApi } from "../api/api";
 
 export default function RightSidebar({
   onClose,
@@ -14,8 +15,47 @@ export default function RightSidebar({
   handleAddMemberSubmit,
   handleLeaveGroupSubmit,
   handleUpdateNicknameSubmit,
+  onJumpToMessage, // Hàm xử lý khi click vào tin nhắn để cuộn màn hình chat chính đến vị trí đó
 }) {
   const [viewMembersMode, setViewMembersMode] = useState("VIEW"); // "VIEW" hoặc "EDIT"
+
+  // --- LOGIC TÌM KIẾM ĐƯỢC THÊM VÀO ---
+  const [isSearching, setIsSearching] = useState(false); // Trạng thái đang mở box tìm kiếm
+  const [searchKeyword, setSearchKeyword] = useState(""); // Từ khóa tìm kiếm
+  const [searchResults, setSearchResults] = useState([]); // Kết quả tin nhắn từ API
+  const [isLoading, setIsLoading] = useState(false); // Trạng thái đợi API phản hồi
+
+  useEffect(() => {
+    if (!searchKeyword.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsLoading(true);
+
+    // Chờ người dùng dừng gõ 500ms mới kích hoạt gọi API
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const result = await searchMessagesApi(
+          currentActiveChat?.id,
+          searchKeyword,
+        );
+        if (result && result.data) {
+          setSearchResults(result.data);
+        } else {
+          setSearchResults([]);
+        }
+      } catch (error) {
+        console.error("Lỗi khi kết nối API tìm kiếm tin nhắn:", error);
+        setSearchResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchKeyword, currentActiveChat?.id]);
+  // ------------------------------------
 
   const handleOpenViewMembers = (mode) => {
     setViewMembersMode(mode);
@@ -40,171 +80,270 @@ export default function RightSidebar({
         onUpdateNickname={handleUpdateNicknameSubmit}
       />
 
+      {/* TIÊU ĐỀ SIDEBAR: Thay đổi linh hoạt dựa theo trạng thái tìm kiếm */}
       <div className="h-[60px] flex items-center justify-between px-4 border-b border-[#c3c8bd]/10 shrink-0">
         <h3 className="text-xs font-bold text-[#1c1c18] uppercase tracking-wider">
-          Thông tin nhóm
+          {isSearching ? "Tìm kiếm tin nhắn" : "Thông tin nhóm"}
         </h3>
         <button
-          onClick={onClose}
+          onClick={
+            isSearching
+              ? () => {
+                  setIsSearching(false);
+                  setSearchKeyword("");
+                  setSearchResults([]);
+                }
+              : onClose
+          }
           className="w-7 h-7 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] transition-colors"
         >
-          <span className="material-symbols-outlined text-lg">close</span>
+          <span className="material-symbols-outlined text-lg">
+            {isSearching ? "arrow_back" : "close"}
+          </span>
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {/* Avatar & Name */}
-        <div className="p-4 flex flex-col items-center border-b border-[#c3c8bd]/10">
-          <div className="relative w-20 h-20 mb-3">
-            <div className="w-full h-full rounded-full overflow-hidden border-2 border-white shadow-sm flex items-center justify-center bg-[#b0e0f6]/20">
-              <img
-                alt=""
-                className="w-full h-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAP0bP5q-Rxagvhq5neetGqD6DLNHvNNsSEuPvgykH-WrvmUNYcewj5m3D4GlRVSV3CkeXZRbQYSc1-9rOun8e9V3LXQG0GJ1pMc3Pc-Pve2GmKrTd8G00Vih6qVlIlZb0Ltk5DD5oqdhOKy00xgpRMzcSUiMa-c8e9Qo-tw_wLiWbabucCPwlLy9h9cgX4OrjoCECC8C_GhoEycM4bxSGwPS-kk8L186tPA2LlyZ4NU4wKOZ88hVr046BSuLKGy-ad4OagU6yv-C8"
-              />
-            </div>
-          </div>
-          <h3 className="text-base font-bold text-[#1c1c18]">
-            {currentActiveChat?.name}
-          </h3>
-          <p className="text-xs text-[#434840]/60">
-            {members.length} Linh hồn tụ họp
-          </p>
-
-          {/* Quick Actions */}
-          <div className="flex justify-between w-full mt-4 px-2">
-            <div
-              onClick={() => setIsAddMemberOpen(true)}
-              className="flex flex-col items-center gap-1 cursor-pointer group"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#f0eee8] flex items-center justify-center text-[#1c1c18] group-hover:bg-[#a8d5ba]/20 transition-colors">
-                <span className="material-symbols-outlined text-lg">
-                  person_add
-                </span>
-              </div>
-              <span className="text-[10px] font-medium text-[#434840]">
-                Thêm
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-1 cursor-pointer group">
-              <div className="w-9 h-9 rounded-full bg-[#b0e0f6]/10 flex items-center justify-center text-[#b0e0f6] group-hover:bg-[#b0e0f6]/20 transition-colors">
-                <span className="material-symbols-outlined text-lg">
+      {/* DIỆN TÍCH CHÍNH CỦA SIDEBAR */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {isSearching ? (
+          // --- GIAO DIỆN BOX TÌM KIẾM VÀ KẾT QUẢ KHI NGƯỜI DÙNG CLICK "TÌM KIẾM" ---
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Ô nhập từ khóa */}
+            <div className="p-3 border-b border-[#c3c8bd]/10 shrink-0">
+              <div className="relative">
+                <span className="material-symbols-outlined text-lg absolute left-2.5 top-1/2 -translate-y-1/2 text-[#434840]/60">
                   search
                 </span>
+                <input
+                  type="text"
+                  placeholder="Nhập từ khóa tìm kiếm..."
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-[#f0eee8]/50 border border-transparent rounded-xl text-xs focus:outline-none focus:bg-white focus:border-[#b0e0f6] transition-all"
+                  autoFocus
+                />
               </div>
-              <span className="text-[10px] font-medium text-[#434840]">
-                Tìm kiếm
-              </span>
             </div>
-            <div
-              onClick={() => handleOpenViewMembers("EDIT")}
-              className="flex flex-col items-center gap-1 cursor-pointer group"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#b0e0f6]/10 flex items-center justify-center text-[#b0e0f6] group-hover:bg-[#b0e0f6]/20 transition-colors">
-                <span className="material-symbols-outlined text-lg">badge</span>
-              </div>
-              <span className="text-[10px] font-medium text-[#434840]">
-                Biệt danh
-              </span>
-            </div>
-            <div
-              onClick={handleLeaveGroupSubmit}
-              className="flex flex-col items-center gap-1 cursor-pointer group"
-            >
-              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
-                <span className="material-symbols-outlined text-lg">
-                  logout
-                </span>
-              </div>
-              <span className="text-[10px] font-medium text-[#434840]">
-                Rời nhóm
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* Member List Short */}
-        <div className="p-4 border-b border-[#c3c8bd]/10">
-          <div className="flex justify-between items-center mb-3">
-            <h4 className="text-xs font-bold text-[#1c1c18]">
-              Thành viên ({members.length})
-            </h4>
-            <button
-              onClick={() => handleOpenViewMembers("VIEW")}
-              className="text-[#b0e0f6] text-xs font-medium hover:underline"
-            >
-              Xem tất cả
-            </button>
+            {/* Danh sách kết quả tin nhắn tìm thấy từ API */}
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+              {isLoading ? (
+                <p className="text-xs text-center text-[#434840]/60 mt-4 animate-pulse">
+                  Đang tìm kiếm...
+                </p>
+              ) : searchKeyword.trim() === "" ? (
+                <p className="text-xs text-center text-[#434840]/60 mt-4">
+                  Nhập nội dung để tìm kiếm tin nhắn cũ
+                </p>
+              ) : searchResults.length > 0 ? (
+                searchResults.map((msg) => {
+                  const sender = members.find((m) => m.id === msg.senderId);
+                  return (
+                    <div
+                      key={msg.id}
+                      onClick={() => onJumpToMessage && onJumpToMessage(msg.id)}
+                      className="p-2.5 rounded-xl hover:bg-[#f0eee8]/60 cursor-pointer border border-transparent hover:border-[#c3c8bd]/20 transition-all flex flex-col gap-1 text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={
+                            sender?.avatarUrl ||
+                            msg.senderAvatar ||
+                            "https://i.pravatar.cc/100"
+                          }
+                          alt=""
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                        <span className="text-[11px] font-bold text-[#1c1c18] truncate">
+                          {sender?.nickname ||
+                            sender?.username ||
+                            msg.senderName ||
+                            "Thành viên"}
+                        </span>
+                        {msg.createdAt && (
+                          <span className="text-[9px] text-[#434840]/40 ml-auto">
+                            {new Date(msg.createdAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#434840] line-clamp-2 pl-7 break-words">
+                        {msg.content}
+                      </p>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-xs text-center text-[#434840]/60 mt-4">
+                  Không tìm thấy tin nhắn nào phù hợp.
+                </p>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col gap-3">
-            {members.map((member, idx) => (
-              <div key={idx} className="flex items-center gap-2.5">
-                <div className="relative w-8 h-8 shrink-0">
+        ) : (
+          // --- GIỮ NGUYÊN TOÀN BỘ GIAO DIỆN CŨ CỦA BẠN KHI KHÔNG TRONG TRẠNG THÁI TÌM KIẾM ---
+          <div className="flex-1 overflow-y-auto">
+            {/* Avatar & Name */}
+            <div className="p-4 flex flex-col items-center border-b border-[#c3c8bd]/10">
+              <div className="relative w-20 h-20 mb-3">
+                <div className="w-full h-full rounded-full overflow-hidden border-2 border-white shadow-sm flex items-center justify-center bg-[#b0e0f6]/20">
                   <img
                     alt=""
-                    className="w-full h-full rounded-full object-cover"
-                    src={member.avatarUrl || "https://i.pravatar.cc/100"}
+                    className="w-full h-full object-cover"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAP0bP5q-Rxagvhq5neetGqD6DLNHvNNsSEuPvgykH-WrvmUNYcewj5m3D4GlRVSV3CkeXZRbQYSc1-9rOun8e9V3LXQG0GJ1pMc3Pc-Pve2GmKrTd8G00Vih6qVlIlZb0Ltk5DD5oqdhOKy00xgpRMzcSUiMa-c8e9Qo-tw_wLiWbabucCPwlLy9h9cgX4OrjoCECC8C_GhoEycM4bxSGwPS-kk8L186tPA2LlyZ4NU4wKOZ88hVr046BSuLKGy-ad4OagU6yv-C8"
                   />
-                  {member.online && (
-                    <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
-                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-[#1c1c18] truncate">
-                    {member.nickname || member.username}{" "}
-                    {member.isYou && (
-                      <span className="text-[#434840]/60 font-normal text-[10px]">
-                        (Bạn)
+              </div>
+              <h3 className="text-base font-bold text-[#1c1c18]">
+                {currentActiveChat?.name}
+              </h3>
+              <p className="text-xs text-[#434840]/60">
+                {members.length} thành viên
+              </p>
+
+              {/* Quick Actions */}
+              <div className="flex justify-between w-full mt-4 px-2">
+                <div
+                  onClick={() => setIsAddMemberOpen(true)}
+                  className="flex flex-col items-center gap-1 cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#f0eee8] flex items-center justify-center text-[#1c1c18] group-hover:bg-[#a8d5ba]/20 transition-colors">
+                    <span className="material-symbols-outlined text-lg">
+                      person_add
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-medium text-[#434840]">
+                    Thêm
+                  </span>
+                </div>
+
+                {/* SỬA TẠI ĐÂY: Kích hoạt nút tìm kiếm sang UI nhập từ khóa */}
+                <div
+                  onClick={() => setIsSearching(true)}
+                  className="flex flex-col items-center gap-1 cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#b0e0f6]/10 flex items-center justify-center text-[#b0e0f6] group-hover:bg-[#b0e0f6]/20 transition-colors">
+                    <span className="material-symbols-outlined text-lg">
+                      search
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-medium text-[#434840]">
+                    Tìm kiếm
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => handleOpenViewMembers("EDIT")}
+                  className="flex flex-col items-center gap-1 cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#b0e0f6]/10 flex items-center justify-center text-[#b0e0f6] group-hover:bg-[#b0e0f6]/20 transition-colors">
+                    <span className="material-symbols-outlined text-lg">
+                      badge
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-medium text-[#434840]">
+                    Biệt danh
+                  </span>
+                </div>
+                <div
+                  onClick={handleLeaveGroupSubmit}
+                  className="flex flex-col items-center gap-1 cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
+                    <span className="material-symbols-outlined text-lg">
+                      logout
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-medium text-[#434840]">
+                    Rời nhóm
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Member List Short */}
+            <div className="p-4 border-b border-[#c3c8bd]/10">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-xs font-bold text-[#1c1c18]">
+                  Thành viên ({members.length})
+                </h4>
+                <button
+                  onClick={() => handleOpenViewMembers("VIEW")}
+                  className="text-[#b0e0f6] text-xs font-medium hover:underline"
+                >
+                  Xem tất cả
+                </button>
+              </div>
+              <div className="flex flex-col gap-3">
+                {members.map((member, idx) => (
+                  <div key={idx} className="flex items-center gap-2.5">
+                    <div className="relative w-8 h-8 shrink-0">
+                      <img
+                        alt=""
+                        className="w-full h-full rounded-full object-cover"
+                        src={member.avatarUrl || "https://i.pravatar.cc/100"}
+                      />
+                      {member.online && (
+                        <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#1c1c18] truncate">
+                        {member.nickname || member.username}{" "}
+                        {member.isYou && (
+                          <span className="text-[#434840]/60 font-normal text-[10px]">
+                            (Bạn)
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-[#434840]/60">
+                        {member.online ? "Đang hoạt động" : "Ngoại tuyến"}
+                      </p>
+                    </div>
+                    {member.role && (
+                      <span className="text-[10px] text-[#a8d5ba] font-semibold">
+                        {member.role}
                       </span>
                     )}
-                  </p>
-                  <p className="text-[10px] text-[#434840]/60">
-                    {member.online ? "Đang hoạt động" : "Ngoại tuyến"}
-                  </p>
-                </div>
-                {member.role && (
-                  <span className="text-[10px] text-[#a8d5ba] font-semibold">
-                    {member.role}
-                  </span>
-                )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* Shared Media */}
-        <div className="p-4 border-b border-[#c3c8bd]/10">
-          <div className="flex justify-between items-center mb-3 cursor-pointer group">
-            <h4 className="text-xs font-bold text-[#1c1c18]">
-              Phương tiện đã chia sẻ
-            </h4>
-            <span className="material-symbols-outlined text-[#434840]/60 group-hover:text-[#b0e0f6] text-lg">
-              chevron_right
-            </span>
-          </div>
-          <div className="flex gap-1.5 justify-between">
-            <img
-              alt=""
-              className="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXksRxTWMdPMdx7gh9O5fyoQeyi1ZZulJyHjxujKXxeAT3iW3Apm_o5BF9VUt2QtF4jdewl9fxDLNEP9mKjnV10c41PyrK9JkzTRyQtKLzbhO3qcaMxSQn9luFAfT62pc-DTjNgRCisl6ygSVK7KGw6H56pwAUOA-URWHjR2UibwGREVdhuTNOS8FxNaCL8BywAm3RwkSf-8trTRN56ZdCJ9S38sKhlTbs6ZtVLDQoKj0omJo8tbX4xedfsiRzdoavrdd9iI77Tq0"
-            />
-            <img
-              alt=""
-              className="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnc7JSk99vzS_o4UmNd1jwkafcH0cI43oXuD3htmyEiYbCOnHXbusaCbsr-nbDO7wR8PUvT7FZkaeeBdmFxvmMl2-tWaZHSyKMEwO8f2m7c0NKdZkoiapiAqRsqGnK7GEw-vpqPYJkcTYmNAOlJOl0Z6_SY7CaLenNtNpmCRUOsI8GjlJMCp4SqIv3vETUP_PfR2mKXzVHpVjwAHfvm2tQ81tNyyAG8spZEpu5H4Z_xJ2eG99f5c5BDsUgJe-Nn1eN2sIhLQx3dtw"
-            />
-            <img
-              alt=""
-              className="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8woP-nS8fgrLHrnbRpM58srGsRUCU4u_sSnol28F8UyAENgMVhaVeawZVyTj2q2e_Dm3PwTVNWNNExcwU8n4onsZtPiVbapf0XNZcB_OaPRTgX_2iCxHhsJPLHWEyJoM3AOZODu1NW2KdcEPLvZUV5fbUG6sYyooYq4utZUhUIqi7Qxxg5bihPidBvGNEfbv5eBegNXTcu2yc0MZmrAeRt_rZ9Gw3YvT7kBZlhrN9hYmxqmgFRmVAUdYhS_cO_fzFsjkdKt7Rchw"
-            />
-            <div className="w-14 h-14 rounded-lg bg-[#f0eee8] flex items-center justify-center cursor-pointer hover:bg-[#ebe8e2] transition-colors">
-              <span className="material-symbols-outlined text-[#434840]/60">
-                chevron_right
-              </span>
+            {/* Shared Media */}
+            <div className="p-4 border-b border-[#c3c8bd]/10">
+              <div className="flex justify-between items-center mb-3 cursor-pointer group">
+                <h4 className="text-xs font-bold text-[#1c1c18]">
+                  Phương tiện đã chia sẻ
+                </h4>
+                <span className="material-symbols-outlined text-[#434840]/60 group-hover:text-[#b0e0f6] text-lg">
+                  chevron_right
+                </span>
+              </div>
+              <div className="flex gap-1.5 justify-between">
+                <img
+                  alt=""
+                  className="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXksRxTWMdPMdx7gh9O5fyoQeyi1ZZulJyHjxujKXxeAT3iW3Apm_o5BF9VUt2QtF4jdewl9fxDLNEP9mKjnV10c41PyrK9JkzTRyQtKLzbhO3qcaMxSQn9luFAfT62pc-DTjNgRCisl6ygSVK7KGw6H56pwAUOA-URWHjR2UibwGREVdhuTNOS8FxNaCL8BywAm3RwkSf-8trTRN56ZdCJ9S38sKhlTbs6ZtVLDQoKj0omJo8tbX4xedfsiRzdoavrdd9iI77Tq0"
+                />
+                <img
+                  alt=""
+                  className="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnc7JSk99vzS_o4UmNd1jwkafcH0cI43oXuD3htmyEiYbCOnHXbusaCbsr-nbDO7wR8PUvT7FZkaeeBdmFxvmMl2-tWaZHSyKMEwO8f2m7c0NKdZkoiapiAqRsqGnK7GEw-vpqPYJkcTYmNAOlJOl0Z6_SY7CaLenNtNpmCRUOsI8GjlJMCp4SqIv3vETUP_PfR2mKXzVHpVjwAHfvm2tQ81tNyyAG8spZEpu5H4Z_xJ2eG99f5c5BDsUgJe-Nn1eN2sIhLQx3dtw"
+                />
+                <img
+                  alt=""
+                  className="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8woP-nS8fgrLHrnbRpM58srGsRUCU4u_sSnol28F8UyAENgMVhaVeawZVyTj2q2e_Dm3PwTVNWNNExcwU8n4onsZtPiVbapf0XNZcB_OaPRTgX_2iCxHhsJPLHWEyJoM3AOZODu1NW2KdcEPLvZUV5fbUG6sYyooYq4utZUhUIqi7Qxxg5bihPidBvGNEfbv5eBegNXTcu2yc0MZmrAeRt_rZ9Gw3YvT7kBZlhrN9hYmxqmgFRmVAUdYhS_cO_fzFsjkdKt7Rchw"
+                />
+                <div className="w-14 h-14 rounded-lg bg-[#f0eee8] flex items-center justify-center cursor-pointer hover:bg-[#ebe8e2] transition-colors">
+                  <span className="material-symbols-outlined text-[#434840]/60">
+                    chevron_right
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </aside>
   );

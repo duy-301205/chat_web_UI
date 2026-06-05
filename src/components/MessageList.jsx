@@ -47,7 +47,11 @@ export default function MessageList({
 
             {message.type === "SYSTEM" || !message.senderId ? (
               <div className="flex justify-center my-2.5 animate-in fade-in duration-300 w-full">
-                <div className="px-3 py-0.5 rounded-full bg-[#f0eee8]/60 border border-[#c3c8bd]/20 text-[11px] text-[#434840]/70 flex items-center gap-1.5 shadow-sm">
+                {/* ĐÃ SỬA: Đặt ID vào đúng khung text nhỏ của tin nhắn hệ thống */}
+                <div
+                  id={`msg-${message.id}`}
+                  className="px-3 py-0.5 rounded-full bg-[#f0eee8]/60 border border-[#c3c8bd]/20 text-[11px] text-[#434840]/70 flex items-center gap-1.5 shadow-sm transition-all duration-300 origin-center"
+                >
                   <span className="italic font-medium">{message.content}</span>
                   <span className="text-[10px] text-[#434840]/60 font-normal border-l border-[#434840]/20 pl-1.5 ml-0.5">
                     {new Date(message.createdAt).toLocaleTimeString([], {
@@ -80,8 +84,14 @@ export default function MessageList({
                   <div
                     className={`flex items-center gap-1.5 ${isMine ? "flex-row-reverse" : ""}`}
                   >
+                    {/* ĐÃ SỬA: Di chuyển id từ div ngoài cùng xuống trúng cái phao/khung nền chứa chữ này */}
                     <div
-                      className={`rounded-[14px] shadow-[0_1px_4px_rgba(0,0,0,0.02)] px-3 py-2 ${isMine ? "bg-[#a8d5ba] rounded-br-[4px]" : "bg-white rounded-bl-[4px] border border-black/5"}`}
+                      id={`msg-${message.id}`}
+                      className={`rounded-[14px] shadow-[0_1px_4px_rgba(0,0,0,0.02)] px-3 py-2 transition-all duration-300 origin-center ${
+                        isMine
+                          ? "bg-[#a8d5ba] rounded-br-[4px]"
+                          : "bg-white rounded-bl-[4px] border border-black/5"
+                      }`}
                     >
                       <p className="text-[14px] text-[#1c1c18] leading-normal">
                         {message.isDeleted ||

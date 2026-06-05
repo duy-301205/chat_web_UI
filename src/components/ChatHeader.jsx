@@ -35,9 +35,7 @@ export default function ChatHeader({
               star
             </span>
           </div>
-          <p className="text-[11px] text-[#434840]">
-            {memberCount} Linh hồn tụ họp
-          </p>
+          <p className="text-[11px] text-[#434840]">{memberCount} thành viên</p>
         </div>
       </div>
       <div className="flex items-center gap-0.5 text-[#b0e0f6]">

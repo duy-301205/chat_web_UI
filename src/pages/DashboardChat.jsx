@@ -49,6 +49,38 @@ export default function DashboardChat() {
   const [isPartnerTyping, setIsPartnerTyping] = useState("");
   const currentUserId = Number(localStorage.getItem("userId"));
 
+  // --- ĐÃ TỐI ƯU: CẬP NHẬT LẠI HIỆU ỨNG CHỈ BÔI KHUNG CHỨA TIN NHẮN ---
+  const handleJumpToMessage = (messageId) => {
+    // Tìm phần tử khung chữ tin nhắn dựa trên ID đã hạ cấp xuống MessageList
+    const element = document.getElementById(`msg-${messageId}`);
+
+    if (element) {
+      // Cuộn màn hình mượt mà đưa tin nhắn đó vào vị trí chính giữa khung chat
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Thêm class màu nền nhấp nháy tạm thời để highlight làm nổi bật tin nhắn cần tìm
+      element.classList.add(
+        "!bg-yellow-200/80",
+        "ring-2",
+        "ring-yellow-400/50",
+        "scale-[1.02]",
+      );
+
+      // Tự động gỡ bỏ sau 2 giây để trả lại màu gốc (trắng/xanh lá) của tin nhắn
+      setTimeout(() => {
+        element.classList.remove(
+          "!bg-yellow-200/80",
+          "ring-2",
+          "ring-yellow-400/50",
+          "scale-[1.02]",
+        );
+      }, 2000);
+    } else {
+      console.warn("Không tìm thấy phần tử tin nhắn trên màn hình hiển thị.");
+    }
+  };
+  // -----------------------------------------------------------------
+
   const pushSystemNotification = (title, desc, icon = "info") => {
     const newNotif = {
       id: Date.now(),
@@ -93,7 +125,6 @@ export default function DashboardChat() {
     setIsPartnerTyping("");
   }, [activeChatId]);
 
-  // ĐÃ TỐI ƯU: Chuẩn hóa dữ liệu thô, chống xung đột biến hoa/thường từ DTO Backend
   useEffect(() => {
     if (!activeChatId) {
       setMembers([]);
@@ -382,7 +413,8 @@ export default function DashboardChat() {
             }
           />
         ) : view === "profile" ? (
-          <MyProfile userData={userData} onBack={() => setView("chat")} />
+          // ĐÃ SỬA TẠI ĐÂY: Loại bỏ hoàn toàn prop userData={userData} để chuyển sang lấy dữ liệu thật từ API Backend
+          <MyProfile onBack={() => setView("chat")} />
         ) : view === "garden" ? (
           <main className="flex-1 rounded-3xl bg-[rgba(253,251,247,0.7)] backdrop-blur-[12px] border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col items-center justify-center text-center p-6 z-10">
             <span className="material-symbols-outlined text-6xl text-[#a8d5ba]/60 mb-3">
@@ -451,6 +483,7 @@ export default function DashboardChat() {
                     handleAddMemberSubmit={handleAddMemberSubmit}
                     handleLeaveGroupSubmit={handleLeaveGroupSubmit}
                     handleUpdateNicknameSubmit={handleUpdateNicknameSubmit}
+                    onJumpToMessage={handleJumpToMessage}
                   />
                 )}
               </>

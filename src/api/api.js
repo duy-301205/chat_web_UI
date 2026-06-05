@@ -197,3 +197,22 @@ export const updateNicknameApi = async (data) => {
         body: JSON.stringify(data), // data chứa { conversationId: ..., userId: ..., nickname: "..." }
     });
 };
+
+export const searchMessagesApi = async (conversationId, keyword) => {
+    const encodedKeyword = encodeURIComponent(keyword.trim());
+
+    return request(
+        `http://localhost:8086/api/messages/searchMessage?conversationId=${conversationId}&keyword=${encodedKeyword}`,
+        {
+            method: "GET",
+            headers: authHeaders(),
+        }
+    );
+};
+
+export const getMyProfileApi = async () => {
+    return request("http://localhost:8086/api/users/me", {
+        method: "GET",
+        headers: authHeaders(),
+    });
+};
