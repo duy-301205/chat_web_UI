@@ -120,8 +120,11 @@ export default function DashboardChat() {
 
   // Luồng 1: Chỉ xử lý kéo API làm tươi dữ liệu khi đổi phòng
   useEffect(() => {
-    fetchMessages();
+    // 🎯 ĐÃ SỬA: Xóa sạch tin nhắn phòng cũ ngay lập tức để kích hoạt
+    // hàm tự động cuộn xuống đáy của MessageList chạy chuẩn xác khi phòng mới nạp tin
+    setMessages([]);
     setIsPartnerTyping("");
+    fetchMessages();
   }, [activeChatId]);
 
   useEffect(() => {
@@ -130,7 +133,7 @@ export default function DashboardChat() {
     // Lấy tin nhắn cuối cùng thực tế đang có trong khung chat
     const lastMsg = messages[messages.length - 1];
 
-    // 🔥 ĐÃ CẬP NHẬT: Chỉ báo xem và xóa số chưa đọc ĐÚNG phòng chat mình đang mở trên màn hình
+    // Chỉ báo xem và xóa số chưa đọc ĐÚNG phòng chat mình đang mở trên màn hình
     const isFromMe = Number(lastMsg.senderId) === currentUserId;
 
     if (!isFromMe) {
@@ -193,7 +196,7 @@ export default function DashboardChat() {
     if (!activeChatId) return;
 
     const onMessageReceived = (newMsg) => {
-      // 1. 🎯 SỬA: Bảo đảm luôn ép kiểu Number toàn diện để nổ tin nhắn realtime vào khung chat giữa
+      // 1. Bảo đảm luôn ép kiểu Number toàn diện để nổ tin nhắn realtime vào khung chat giữa
       if (Number(newMsg.conversationId) === Number(activeChatId)) {
         setMessages((prevMessages) => {
           if (prevMessages.some((m) => m.id === newMsg.id)) return prevMessages;
@@ -320,8 +323,7 @@ export default function DashboardChat() {
     return () => {
       disconnectWebSocket();
     };
-    // 🎯 ĐÃ SỬA: Đưa activeChatId vào đây để hàm callback đồng bộ chính xác phòng đang mở thời gian thực
-  }, [activeChatId, currentUserId]);
+  }, [activeChatId, currentUserId, chatList.length]); // Thêm độ dài danh sách chat vào dep mảng để quản lý kết nối chuẩn xác
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeChatId) return;

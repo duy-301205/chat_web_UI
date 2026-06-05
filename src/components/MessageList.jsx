@@ -13,27 +13,64 @@ export default function MessageList({
   const containerRef = useRef(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
-  // 1. TỰ ĐỘNG CUỘN HOẶC HIỆN NÚT KHI CÓ TIN NHẮN MỚI
+  const activeChatId =
+    messages && messages.length > 0 ? messages[0].conversationId : null;
+  const isFirstLoadRef = useRef(true);
+
+  // 1. Đổi phòng chat thì đặt lại cờ FirstLoad để ép nhảy xuống đáy lập tức ở phòng mới
+  useEffect(() => {
+    isFirstLoadRef.current = true;
+  }, [activeChatId]);
+
+  // 2. Dùng ResizeObserver để theo dõi khi nào toàn bộ tin nhắn dãn hết chiều cao thật
   useEffect(() => {
     if (!containerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 300;
 
-    if (isAtBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      setShowScrollBtn(false);
-    } else {
-      setShowScrollBtn(true);
-    }
-  }, [messages]);
+    const resizeObserver = new ResizeObserver(() => {
+      // Nếu là lần đầu tiên vào phòng hoặc đổi phòng -> Ép nhảy thẳng xuống đáy lập tức
+      if (isFirstLoadRef.current) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+        isFirstLoadRef.current = false;
+        setShowScrollBtn(false);
+      } else {
+        // Nếu đang ở trong phòng chat mà có tin nhắn mới đến từ WebSocket, kiểm tra xem có đang ở sát đáy không
+        const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 400;
 
-  // 2. THEO DÕI CUỘN CHUỘT
+        if (isAtBottom) {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          setShowScrollBtn(false);
+        } else {
+          // Đối phương nhắn tin tới khi mình đang cuộn lên trên xem tin cũ -> Hiện nút báo hiệu ngay
+          setShowScrollBtn(true);
+        }
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [messages, activeChatId]);
+
+  // 🎯 3. LUỒNG BỔ SUNG: THEO DÕI HÀNH VI CUỘN CHUỘT ĐỂ ẨN/HIỆN NÚT "TIN NHẮN MỚI NHẤT"
   const handleScroll = () => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+    // Kiểm tra xem người dùng có đang đứng ở đáy không (cách đáy dưới 150px)
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 150;
+
     if (isAtBottom) {
+      // Nếu đã kéo xuống sát đáy -> Ẩn nút đi cho đỡ rối mắt
       setShowScrollBtn(false);
+    } else {
+      // 🔥 ĐÃ THÊM: Nếu cuộn ngược lên trên (cách đáy > 150px), lập tức hiện nút "Tin nhắn mới nhất"
+      // Chỉ hiện khi phòng chat thực sự có tin nhắn để tránh hiện ở màn hình trống
+      if (messages && messages.length > 0) {
+        setShowScrollBtn(true);
+      }
     }
   };
 
@@ -58,12 +95,11 @@ export default function MessageList({
     });
   };
 
-  // 🎯 THU THẬP AVATAR ĐÃ XEM (MESSENGER STYLE):
+  // THU THẬP AVATAR ĐÃ XEM (MESSENGER STYLE):
   const getSeenAvatarsForMessage = (messageId) => {
     if (!members || members.length === 0) return [];
 
     return members.filter((member) => {
-      // Bỏ qua chính mình
       if (Number(member.userId) === currentUserId) return false;
 
       const lastSeenId = member.lastSeenMessageId || member.lastMessageSeenId;
@@ -104,7 +140,6 @@ export default function MessageList({
             : null;
         const showDateLabel = currentMsgDate !== prevMsgDate;
 
-        // Quét lấy danh sách những người đang dừng chân xem ở tin nhắn này
         const seenUsers = getSeenAvatarsForMessage(message.id);
 
         const memberInfo = members?.find(
@@ -230,7 +265,7 @@ export default function MessageList({
                   </div>
                 </div>
 
-                {/* 🎯 GIAO DIỆN AVATAR ĐÃ XEM REALTIME (MESSENGER STYLE) */}
+                {/* GIAO DIỆN AVATAR ĐÃ XEM */}
                 {seenUsers.length > 0 && (
                   <div
                     className={`flex items-center gap-1 mt-0.5 animate-in fade-in zoom-in-95 duration-200 ${isMine ? "mr-1" : "ml-9"}`}
@@ -260,7 +295,6 @@ export default function MessageList({
           <div className="rounded-[14px] bg-white rounded-bl-[4px] border border-black/5 px-3 py-2 shadow-sm w-fit">
             <div className="flex items-center gap-1 h-3 px-1">
               <span className="w-1.5 h-1.5 bg-[#434840]/50 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-              {/* ĐÃ SỬA: Dọn dẹp sạch sẽ ký tự ]. viết lỗi cú pháp cũ */}
               <span className="w-1.5 h-1.5 bg-[#434840]/50 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
               <span className="w-1.5 h-1.5 bg-[#434840]/50 rounded-full animate-bounce"></span>
             </div>
