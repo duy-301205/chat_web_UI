@@ -246,7 +246,10 @@ export default function SidebarChat({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-baseline mb-0.5">
-                      <h3 className="text-xs font-bold text-[#1c1c18] truncate">
+                      {/* 🎯 ĐÃ SỬA: Tên cuộc hội thoại tự động bôi đậm đậm hơn nếu chưa đọc (unreadCount > 0) */}
+                      <h3
+                        className={`text-xs truncate ${chat.unreadCount > 0 ? "font-black text-[#1c1c18]" : "font-bold text-[#1c1c18]/80"}`}
+                      >
                         {chat.name}
                       </h3>
                       <span
@@ -255,15 +258,17 @@ export default function SidebarChat({
                         {chat.time}
                       </span>
                     </div>
-                    <p className="text-xs text-[#434840] truncate">
+                    {/* 🎯 ĐÃ SỬA: Tin nhắn cuối cùng tự bôi đậm và đổi màu đen sẫm nếu chưa đọc */}
+                    <p
+                      className={`text-xs truncate ${chat.unreadCount > 0 ? "font-bold text-[#1c1c18]" : "text-[#434840]/70"}`}
+                    >
                       {chat.lastMessageSenderName && (
-                        <span className="font-semibold text-[#1c1c18]/80mr-1">
+                        <span className="font-semibold text-[#1c1c18]/80 mr-1">
                           {chat.lastMessageSenderName === "You"
                             ? "Bạn: "
                             : `${chat.lastMessageSenderName}: `}
                         </span>
                       )}
-                      {/* 🎯 ĐÃ SỬA: Đọc chuỗi phẳng thuần túy, loại bỏ hoàn toàn logic Object lồng nhau cũ gây lỗi đơ Sidebar */}
                       {chat.lastMessage || "Chưa có tin nhắn nào... 🍃"}
                     </p>
                   </div>
@@ -393,7 +398,7 @@ export default function SidebarChat({
         </button>
 
         {isNotificationOpen && (
-          <div className="absolute bottom-14 right-2 w-[260px] rounded-2xl bg-[rgba(253,251,247,0.95)] backdrop-blur-xl border border-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden z-50">
+          <div className="absolute bottom-14 right-2 w-[260px] rounded-2xl bg-[rgba(253,251,247,0.95)] backdrop-blur-[12px] border border-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden z-50">
             <div className="p-4 border-b border-[#c3c8bd]/20 flex items-center justify-between bg-white/40">
               <h4 className="text-xs font-bold text-[#1c1c18] uppercase tracking-wider flex items-center gap-1.5">
                 <span

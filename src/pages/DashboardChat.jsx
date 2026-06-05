@@ -127,27 +127,31 @@ export default function DashboardChat() {
   useEffect(() => {
     if (!activeChatId || !messages || messages.length === 0) return;
 
-    // Lấy tin nhắn cuối cùng thực tế đang có trong khung chat (Ví dụ tin nhắn "F")
+    // Lấy tin nhắn cuối cùng thực tế đang có trong khung chat
     const lastMsg = messages[messages.length - 1];
 
-    console.log(
-      "🎯 Thực hiện gửi tín hiệu Đã xem cho tin nhắn cuối cùng ID:",
-      lastMsg.id,
-    );
+    // 🔥 ĐÃ CẬP NHẬT: Chỉ báo xem và xóa số chưa đọc ĐÚNG phòng chat mình đang mở trên màn hình
+    const isFromMe = Number(lastMsg.senderId) === currentUserId;
 
-    sendWSMessage("/app/chat.seen", {
-      conversationId: Number(activeChatId),
-      messageId: Number(lastMsg.id),
-    });
+    if (!isFromMe) {
+      console.log(
+        "🎯 Thực hiện gửi tín hiệu Đã xem cho tin nhắn phòng đang mở ID:",
+        lastMsg.id,
+      );
 
-    // Ép trực tiếp state số tin chưa đọc của phòng này về 0 ngay lập tức trên UI
-    setChatList((prevList) =>
-      prevList.map((chat) =>
-        Number(chat.id) === Number(activeChatId)
-          ? { ...chat, unreadCount: 0 }
-          : chat,
-      ),
-    );
+      sendWSMessage("/app/chat.seen", {
+        conversationId: Number(activeChatId),
+        messageId: Number(lastMsg.id),
+      });
+
+      setChatList((prevList) =>
+        prevList.map((chat) =>
+          Number(chat.id) === Number(activeChatId)
+            ? { ...chat, unreadCount: 0 }
+            : chat,
+        ),
+      );
+    }
   }, [messages, activeChatId, currentUserId]);
 
   useEffect(() => {

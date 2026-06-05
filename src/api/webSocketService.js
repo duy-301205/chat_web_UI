@@ -4,7 +4,7 @@ import Stomp from "stompjs";
 let stompClient = null;
 let subscriptions = [];
 
-// 🎯 ĐÃ SỬA: Thêm tham số subscribedIds vào vị trí số 2 để nhận danh sách tất cả các phòng chat từ DashboardChat.jsx truyền sang
+// 🎯 Nhận tham số subscribedIds để lắng nghe đa phòng và Kênh Tổng
 export const connectWebSocket = (
     activeChatId,
     subscribedIds,
@@ -54,7 +54,26 @@ const updateSubscriptions = (
     subscriptions = [];
 
     // ==========================================
-    // LUỒNG 1: LẮNG NGHE ĐA KÊNH CHO SIDEBAR (REALTIME CHO TẤT CẢ CÁC PHÒNG CHAT)
+    // 🎯 LUỒNG CẤT CÁNH: LẮNG NGHE KÊNH TỔNG SIDEBAR CÁ NHÂN (MESSENGER STYLE)
+    // ==========================================
+    const currentUserId = localStorage.getItem("userId");
+    if (currentUserId) {
+        console.log(`📡 Đang đăng ký Kênh Tổng Sidebar cá nhân tại: /topic/user/${currentUserId}/sidebar`);
+
+        const sidebarSub = stompClient.subscribe(`/topic/user/${currentUserId}/sidebar`, (sdkEvent) => {
+            const newMsg = JSON.parse(sdkEvent.body);
+            console.log("📥 Kênh Tổng nhận dữ liệu tin nhắn mới cho Sidebar:", newMsg);
+
+            // Đẩy dữ liệu ra ngoài: Sidebar tự động tính toán, nhảy phòng chat lên top 1 và nổ thông báo unreadCount!
+            if (onMessageReceived) {
+                onMessageReceived(newMsg);
+            }
+        });
+        subscriptions.push(sidebarSub);
+    }
+
+    // ==========================================
+    // LUỒNG 1: LẮNG NGHE ĐA KÊNH CHO SIDEBAR (REALTIME CHO TẤT CẢ CÁC PHÒNG CHAT CŨ)
     // ==========================================
     if (subscribedIds && subscribedIds.length > 0) {
         subscribedIds.forEach((chatId) => {
@@ -69,7 +88,6 @@ const updateSubscriptions = (
                 } else if (data.isEdited) {
                     onMessageEdited(data);
                 } else {
-                    // Kích hoạt nhận tin nhắn mới (Thanh sidebar bên trái tự động bắt được và nhảy lên top 1)
                     onMessageReceived(data);
                 }
             });
