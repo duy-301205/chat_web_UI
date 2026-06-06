@@ -1,8 +1,10 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8086/api";
+// --- 1. CẤU HÌNH ĐƯỜNG DẪN BACKEND THEO BIẾN MÔI TRƯỜNG VITE ---
+// Nếu ở máy local (không cấu hình .env), hệ thống tự động fallback về http://localhost:8086/api
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8086/api";
 
-// --- 1. KHỞI TẠO AXIOS CLIENT ---
+// --- 2. KHỞI TẠO AXIOS CLIENT ---
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -24,7 +26,7 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
-// --- 2. BỘ CHẶN REQUEST: TỰ ĐỘNG ĐÍNH KÈM ACCESS TOKEN ---
+// --- 3. BỘ CHẶN REQUEST: TỰ ĐỘNG ĐÍNH KÈM ACCESS TOKEN ---
 apiClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("accessToken");
@@ -36,7 +38,7 @@ apiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// --- 3. BỘ CHẶN RESPONSE: TỰ ĐỘNG REFRESH REAL-TIME KHI TOKEN HẾT HẠN (401) ---
+// --- 4. BỘ CHẶN RESPONSE: TỰ ĐỘNG REFRESH REAL-TIME KHI TOKEN HẾT HẠN (401) ---
 apiClient.interceptors.response.use(
     (response) => {
         // Trả về trực tiếp phần dữ liệu JSON từ Server { code, message, data }
@@ -61,6 +63,8 @@ apiClient.interceptors.response.use(
                 })
                     .then((token) => {
                         originalRequest.headers.Authorization = `Bearer ${token}`;
+                        // SỬA LỖI TẠI ĐÂY: Phải bọc trong apiClient(originalRequest) trực tiếp để 
+                        // khi request này chạy lại, nó đi qua hàm interceptor response thành công và lấy thẳng dữ liệu .data
                         return apiClient(originalRequest);
                     })
                     .catch((err) => Promise.reject(err));
@@ -125,7 +129,7 @@ const handleLogout = () => {
     window.location.href = "/login";
 };
 
-// --- 4. DANH SÁCH CÁC API HOÀN CHỈNH ---
+// --- 5. DANH SÁCH CÁC API HOÀN CHỈNH ---
 
 export const loginApi = async (data) => {
     return apiClient.post("/auth/login", data);

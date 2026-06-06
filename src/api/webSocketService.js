@@ -19,7 +19,11 @@ export const connectWebSocket = (
         return;
     }
 
-    const socket = new SockJS("http://localhost:8086/ws");
+    // TỰ ĐỘNG CHUYỂN ĐỔI URL WEBSOCKET THEO MÔI TRƯỜNG VERCEL / LOCAL
+    const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8086/api";
+    const WS_URL = BASE_URL.replace(/\/api$/, "") + "/ws";
+
+    const socket = new SockJS(WS_URL);
     stompClient = Stomp.over(socket);
 
     // Tắt bớt log debug ping-pong mặc định của Stomp để tránh tràn tab Console F12
@@ -34,7 +38,10 @@ export const connectWebSocket = (
         updateSubscriptions(activeChatId, subscribedIds, onMessageReceived, onMessageEdited, onMessageRecalled, onUserTyping, onMessageSeenReceived);
     }, (error) => {
         console.error("❌ Lỗi kết nối WebSocket:", error);
-        setTimeout(() => connectWebSocket(activeChatId, subscribedIds, onMessageReceived, onMessageEdited, onMessageRecalled, onUserTyping, onMessageSeenReceived), 5000);
+        // Tự động kết nối lại sau 5 giây nếu gặp sự cố sập mạng
+        setTimeout(() => {
+            connectWebSocket(activeChatId, subscribedIds, onMessageReceived, onMessageEdited, onMessageRecalled, onUserTyping, onMessageSeenReceived);
+        }, 5000);
     });
 };
 
@@ -64,7 +71,6 @@ const updateSubscriptions = (
             const newMsg = JSON.parse(sdkEvent.body);
             console.log("📥 Kênh Tổng nhận dữ liệu tin nhắn mới cho Sidebar:", newMsg);
 
-            // Đẩy dữ liệu ra ngoài: Sidebar tự động tính toán, nhảy phòng chat lên top 1 và nổ thông báo unreadCount!
             if (onMessageReceived) {
                 onMessageReceived(newMsg);
             }
@@ -80,20 +86,18 @@ const updateSubscriptions = (
             const listSub = stompClient.subscribe(`/topic/conversations/${chatId}`, (sdkEvent) => {
                 const data = JSON.parse(sdkEvent.body);
 
-                // Ép kiểu chuẩn xác dữ liệu hội thoại
                 if (!data.conversationId) data.conversationId = chatId;
 
                 if (data.messageId && !data.id) {
-                    onMessageRecalled(data);
+                    if (onMessageRecalled) onMessageRecalled(data);
                 } else if (data.isEdited) {
-                    onMessageEdited(data);
+                    if (onMessageEdited) onMessageEdited(data);
                 } else {
-                    onMessageReceived(data);
+                    if (onMessageReceived) onMessageReceived(data);
                 }
             });
             subscriptions.push(listSub);
 
-            // Đăng ký nhận luôn tín hiệu Seen Realtime của tất cả các phòng để Sidebar cập nhật số tin chưa đọc lập tức
             const listSeenSub = stompClient.subscribe(`/topic/conversations/${chatId}/seen`, (sdkEvent) => {
                 const seenData = JSON.parse(sdkEvent.body);
                 if (!seenData.conversationId) seenData.conversationId = chatId;
@@ -111,7 +115,6 @@ const updateSubscriptions = (
     if (activeChatId) {
         console.log(`📡 Đang thiết lập kênh lắng nghe chi tiết phụ trợ tại phòng: ${activeChatId}`);
 
-        // Trạng thái đối phương đang gõ chữ "typing" (Chỉ cần nghe ở phòng đang mở trực tiếp)
         const typingSub = stompClient.subscribe(`/topic/conversations/${activeChatId}/typing`, (sdkEvent) => {
             const typingData = JSON.parse(sdkEvent.body);
             if (onUserTyping) {
