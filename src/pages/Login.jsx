@@ -180,12 +180,14 @@ export default function Login() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <>
-                <span className="material-symbols-outlined animate-spin text-[18px]">
+              <div className="flex items-center gap-2 animate-none">
+                {/* Cô lập class xoay chỉ nằm duy nhất trong thẻ icon này */}
+                <span className="material-symbols-outlined animate-spin text-[18px] inline-block">
                   progress_activity
                 </span>
-                Summoning Spirit...
-              </>
+                {/* Bọc chữ vào thẻ span độc lập để cố định không bị xoay theo */}
+                <span className="inline-block">Summoning Spirit...</span>
+              </div>
             ) : (
               <>
                 Enter the Forest

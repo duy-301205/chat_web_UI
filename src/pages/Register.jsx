@@ -181,14 +181,14 @@ export default function Register() {
             {error ? (
               <div
                 key="err-alert"
-                className="text-red-500 text-xs font-semibold text-center bg-red-500/10 py-2 px-4 rounded-xl border border-red-500/20"
+                className="text-red-500 text-xs font-semibold text-center bg-red-500/10 py-2 px-4 rounded-xl border border-red-500/20 animate-in fade-in duration-200"
               >
                 {error}
               </div>
             ) : success ? (
               <div
                 key="succ-alert"
-                className="text-emerald-600 text-xs font-semibold text-center bg-emerald-500/10 py-2 px-4 rounded-xl border border-emerald-500/20"
+                className="text-emerald-600 text-xs font-semibold text-center bg-emerald-500/10 py-2 px-4 rounded-xl border border-emerald-500/20 animate-in fade-in duration-200"
               >
                 {success}
               </div>
@@ -205,12 +205,12 @@ export default function Register() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <>
-                <span className="material-symbols-outlined animate-spin text-[18px]">
+              <div className="flex items-center gap-2 animate-none">
+                <span className="material-symbols-outlined animate-spin text-[18px] inline-block">
                   progress_activity
                 </span>
-                Sprouting Soul...
-              </>
+                <span className="inline-block">Sprouting Soul...</span>
+              </div>
             ) : (
               <>
                 Begin your Journey
