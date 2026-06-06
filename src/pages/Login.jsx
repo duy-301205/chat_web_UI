@@ -6,14 +6,13 @@ import { loginApi } from "../api/api";
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  // 🎯 THÊM: Trạng thái chờ xử lý để tránh người dùng click nút gửi liên tục
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true); // Bật hiệu ứng chờ
+    setIsLoading(true);
 
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
@@ -22,7 +21,6 @@ export default function Login() {
       const result = await loginApi(data);
       console.log("Đăng nhập thành công:", result);
 
-      // Đảm bảo bọc tính năng an toàn nếu cấu trúc dữ liệu từ Backend bị lồng nhau
       if (result && result.code === 200) {
         localStorage.setItem("userId", result.data.userId);
         localStorage.setItem("accessToken", result.data.accessToken);
@@ -31,17 +29,16 @@ export default function Login() {
         navigate("/chat");
       } else {
         setError(result.message || "Đăng nhập thất bại. Vui lòng thử lại!");
+        setIsLoading(false); // Tắt hiệu ứng chờ nếu có thông điệp lỗi cấu trúc
       }
     } catch (err) {
       console.error("Đăng nhập thất bại:", err.message);
-      // 🎯 ĐÃ SỬA: Đọc trực tiếp lỗi động từ file api.js đẩy ra thay vì gõ cứng chuỗi thông báo
       setError(
         err.message === "API_ERROR"
           ? "Email hoặc mật khẩu không chính xác!"
           : err.message,
       );
-    } finally {
-      setIsLoading(false); // Tắt hiệu ứng chờ kể cả khi thành công hay thất bại
+      setIsLoading(false); // Tắt hiệu ứng chờ khi bắt được ngoại lệ ngoại mạng/hệ thống
     }
   };
 
@@ -102,7 +99,7 @@ export default function Login() {
                 </span>
               </div>
               <input
-                className="w-full pl-11 pr-4编程 bg-white/40 border border-slate-300/50 rounded-full text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4a6545]/40 focus:bg-white transition-all text-sm h-11"
+                className="w-full pl-11 pr-4 bg-white/40 border border-slate-300/50 rounded-full text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4a6545]/40 focus:bg-white transition-all text-sm h-11"
                 id="email"
                 name="email"
                 placeholder="Enter your email"
@@ -161,15 +158,21 @@ export default function Login() {
             </a>
           </div>
 
-          {/* Khối hiển thị lỗi động */}
-          {error && (
-            <div className="text-red-500 text-xs font-semibold text-center bg-red-500/10 py-2 px-4 rounded-xl border border-red-500/20 animate-in fade-in duration-200">
-              {error}
-            </div>
-          )}
+          {/* Khối thông báo lỗi tĩnh - Ngăn lỗi xung đột gỡ bỏ Node */}
+          <div className="error-container w-full min-h-[40px] empty:hidden">
+            {error ? (
+              <div
+                key="err-display"
+                className="text-red-500 text-xs font-semibold text-center bg-red-500/10 py-2 px-4 rounded-xl border border-red-500/20"
+              >
+                {error}
+              </div>
+            ) : null}
+          </div>
 
           {/* CTA Button */}
           <button
+            key={isLoading ? "btn-loading" : "btn-active"} // Khóa key cố định tránh tính toán sai lệch DOM ảo
             className={`w-full h-11 mt-2 bg-[#4a6545] text-white rounded-full font-bold text-sm shadow-md hover:bg-[#3b5237] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex justify-center items-center gap-2 ${
               isLoading ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
             }`}
