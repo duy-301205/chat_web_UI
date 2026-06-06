@@ -7,7 +7,6 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  // 🎯 THÊM: Trạng thái chờ xử lý để tránh người dùng click nút gửi liên tục khi đang đăng ký
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -16,7 +15,7 @@ export default function Register() {
 
     setError("");
     setSuccess("");
-    setIsLoading(true); // Bật hiệu ứng chờ
+    setIsLoading(true);
 
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
@@ -27,27 +26,21 @@ export default function Register() {
 
       if (result && result.code === 200) {
         setSuccess("Đăng ký tài khoản thành công! Đang chuyển hướng...");
-
-        // Tạo khoảng trễ ngắn 1.5 giây để người dùng kịp nhìn thấy thông báo thành công xanh lá
         setTimeout(() => {
           navigate("/login");
         }, 1500);
       } else {
         setError(result.message || "Đăng ký thất bại. Vui lòng thử lại!");
+        setIsLoading(false); // Tắt hiệu ứng chờ nếu backend trả mã lỗi có cấu trúc
       }
     } catch (err) {
       console.error("Đăng ký thất bại:", err.message);
-      // Đọc trực tiếp lỗi động từ file api.js đẩy ra thay vì gõ cứng chuỗi thông báo
       setError(
         err.message === "API_ERROR"
           ? "Thông tin đăng ký không hợp lệ hoặc Email đã tồn tại!"
           : err.message,
       );
-    } finally {
-      // Tắt hiệu ứng chờ (chỉ tắt khi gặp lỗi, nếu thành công thì để luồng nhảy trang xử lý)
-      if (!success) {
-        setIsLoading(false);
-      }
+      setIsLoading(false); // Tắt hiệu ứng chờ khi xảy ra lỗi kết nối/nghiệp vụ
     }
   };
 
@@ -183,22 +176,28 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Khối hiển thị lỗi động */}
-          {error && (
-            <div className="text-red-500 text-xs font-semibold text-center bg-red-500/10 py-2 px-4 rounded-xl border border-red-500/20 animate-in fade-in duration-200">
-              {error}
-            </div>
-          )}
-
-          {/* Khối hiển thị đăng ký thành công */}
-          {success && (
-            <div className="text-emerald-600 text-xs font-semibold text-center bg-emerald-500/10 py-2 px-4 rounded-xl border border-emerald-500/20 animate-in fade-in duration-200">
-              {success}
-            </div>
-          )}
+          {/* Khối thông báo tĩnh - Ngăn lỗi xung đột gỡ bỏ Node */}
+          <div className="message-container w-full min-h-[40px] empty:hidden">
+            {error ? (
+              <div
+                key="err-alert"
+                className="text-red-500 text-xs font-semibold text-center bg-red-500/10 py-2 px-4 rounded-xl border border-red-500/20"
+              >
+                {error}
+              </div>
+            ) : success ? (
+              <div
+                key="succ-alert"
+                className="text-emerald-600 text-xs font-semibold text-center bg-emerald-500/10 py-2 px-4 rounded-xl border border-emerald-500/20"
+              >
+                {success}
+              </div>
+            ) : null}
+          </div>
 
           {/* CTA Button */}
           <button
+            key={isLoading ? "btn-loading" : "btn-active"} // Gán key rõ ràng để ép React không nhầm DOM
             className={`w-full h-11 mt-4 bg-[#4a6545] text-white rounded-full font-bold text-sm shadow-md hover:bg-[#3b5237] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex justify-center items-center gap-2 ${
               isLoading ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
             }`}
