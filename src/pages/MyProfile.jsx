@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { getMyProfileApi } from "../api/api";
 
 export default function MyProfile({ userData, onBack }) {
-  // Bộ dữ liệu mẫu dự phòng mặc định nếu chưa tải xong API hoặc không có prop truyền xuống
+  const navigate = useNavigate();
   const defaultUser = {
     name: "Komorebi",
     email: "komorebi@forest.sanctuary",
@@ -66,7 +67,11 @@ export default function MyProfile({ userData, onBack }) {
   // --------------------------------------------
 
   const handleLeaveSanctuary = () => {
-    window.location.href = "/login";
+    localStorage.removeItem("userId");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+
+    navigate("/login");
   };
 
   return (
