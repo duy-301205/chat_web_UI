@@ -81,21 +81,15 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
       if (response && response.code === 200 && response.data) {
         let newGroupData = response.data;
 
-        newGroupData.lastMessage = {
-          content: `Bạn đã khởi tạo nhóm "${groupName.trim()}" thành công 🌿`,
-          type: "SYSTEM",
-          createdAt: new Date().toISOString(),
-        };
+        newGroupData.lastMessage = `Bạn đã khởi tạo nhóm "${groupName.trim()}" thành công 🌿`;
         newGroupData.lastMessageAt = new Date().toISOString();
 
-        // 3. THÊM THEO YÊU CẦU: Bật thông báo tạo thành công trước khi đóng modal
         setIsSuccess(true);
 
         setTimeout(() => {
           if (onGroupCreated) {
             onGroupCreated(newGroupData);
           }
-          // Làm sạch Form và đóng hẳn Modal sau khi hiện thông báo xong
           setGroupName("");
           setMemberSearchQuery("");
           setSelectedMemberIds([]);
