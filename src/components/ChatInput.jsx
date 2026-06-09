@@ -11,7 +11,6 @@ export default function ChatInput({
   currentUserId,
 }) {
   const typingTimeoutRef = useRef(null);
-  // 🎯 Thêm ref này để chặn không cho WebSocket bắn liên tục tín hiệu "true" khi gõ chữ liên tục
   const isTypingRef = useRef(false);
 
   const handleKeyDown = (e) => {
@@ -28,11 +27,10 @@ export default function ChatInput({
   const sendTypingStatus = (isTyping) => {
     if (!activeChatId || !currentUserId) return;
 
-    // Lưu lại trạng thái hiện tại để chặn gửi trùng
     isTypingRef.current = isTyping;
 
     sendWSMessage("/app/chat.typing", {
-      conversationId: Number(activeChatId), // Ép kiểu số chuẩn
+      conversationId: Number(activeChatId),
       userId: currentUserId,
       isTyping: isTyping,
     });
@@ -42,22 +40,18 @@ export default function ChatInput({
     const value = e.target.value;
     setInputText(value);
 
-    // Đang sửa tin nhắn cũ thì không kích hoạt trạng thái "Đang gõ..."
     if (editingMessageId) return;
 
     if (value.trim().length > 0) {
-      // 🎯 Chỉ gửi lên Server một lần duy nhất khi bắt đầu chuỗi gõ chữ
       if (!isTypingRef.current) {
         sendTypingStatus(true);
       }
 
-      // Thiết lập cơ chế Debounce tự tắt sau 3 giây ngừng gõ
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
         sendTypingStatus(false);
       }, 3000);
     } else {
-      // 🎯 ĐÃ SỬA: Nếu người dùng xóa sạch chữ trong ô input, tắt ngay lập tức chữ "Đang gõ..." bên máy đối phương
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (isTypingRef.current) {
         sendTypingStatus(false);
@@ -65,7 +59,6 @@ export default function ChatInput({
     }
   };
 
-  // Tự động tắt trạng thái gõ khi người dùng đột ngột đổi sang phòng chat khác
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);

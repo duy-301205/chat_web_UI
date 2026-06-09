@@ -70,7 +70,6 @@ export default function SidebarChat({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Nút Tạo nhóm */}
           <button
             onClick={() => setIsCreateGroupOpen(true)}
             className="w-8 h-8 rounded-full flex items-center justify-center text-[#434840] hover:bg-[#f0eee8] transition-colors relative cursor-pointer"
@@ -84,7 +83,6 @@ export default function SidebarChat({
             </span>
           </button>
 
-          {/* Nút Khám phá bạn mới */}
           <button
             onClick={() => setView(view === "spirits" ? "chat" : "spirits")}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
@@ -258,7 +256,6 @@ export default function SidebarChat({
                         {chat.time}
                       </span>
                     </div>
-                    {/* 🎯 ĐÃ SỬA: Tin nhắn cuối cùng tự bôi đậm và đổi màu đen sẫm nếu chưa đọc */}
                     <p
                       className={`text-xs truncate ${chat.unreadCount > 0 ? "font-bold text-[#1c1c18]" : "text-[#434840]/70"}`}
                     >

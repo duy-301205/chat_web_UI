@@ -4,21 +4,17 @@ import { getFriendsApi, createConversationApi } from "../api/api";
 export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
   const [groupName, setGroupName] = useState("");
 
-  // State quản lý từ khóa tìm kiếm thành viên
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
 
-  // STATE ĐÃ CẬP NHẬT: Quản lý danh sách bạn bè thật bốc từ API
   const [friendList, setFriendList] = useState([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
 
-  // STATE THÊM MỚI THEO YÊU CẦU: Quản lý ẩn hiện box thông báo thành công
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // LOGIC ĐÃ THÊM: Tự động triệu hồi danh sách bạn bè thật khi Modal mở lên
   useEffect(() => {
     if (!isOpen) return;
-    setIsSuccess(false); // Reset trạng thái thông báo khi mở lại modal
+    setIsSuccess(false);
 
     const fetchFriends = async () => {
       setLoadingFriends(true);
@@ -42,13 +38,11 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
 
   if (!isOpen) return null;
 
-  // Lọc danh sách bạn bè dựa trên kí tự ô tìm kiếm thành viên (Đọc theo username/nickName thật từ DB)
   const filteredFriendsToInvite = friendList.filter((f) => {
     const nameToSearch = f.nickName || f.username || "";
     return nameToSearch.toLowerCase().includes(memberSearchQuery.toLowerCase());
   });
 
-  // Xử lý khi click chọn/hủy chọn thành viên
   const handleToggleMember = (id) => {
     if (selectedMemberIds.includes(id)) {
       setSelectedMemberIds(
@@ -59,12 +53,10 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
     }
   };
 
-  // Lấy danh sách object các bạn bè đã được chọn để làm hàng Preview ngang
   const selectedFriendsPreview = friendList.filter((f) =>
     selectedMemberIds.includes(f.id),
   );
 
-  // TÍCH HỢP LOGIC API: Xử lý hành động gửi Form tạo nhóm thật lên Spring Boot
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!groupName.trim()) return;
@@ -103,9 +95,7 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
   };
 
   return (
-    /* LỚP NỀN BAO QUANH NGOÀI CÙNG - GIỮ NGUYÊN VẸN */
     <div className="absolute inset-0 rounded-3xl bg-[rgba(253,251,247,0.3)] backdrop-blur-[4px] flex items-center justify-center p-6 z-50 animate-in fade-in duration-200">
-      {/* THÊM MỚI THEO YÊU CẦU: Hộp thoại (box) hiện ra thông báo thành công phủ lên trên */}
       {isSuccess && (
         <div className="absolute inset-0 m-auto w-full max-w-sm h-fit bg-white/95 backdrop-blur-md border border-[#a8d5ba]/40 rounded-[24px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] p-5 flex flex-col items-center justify-center text-center gap-2.5 z-50 animate-in zoom-in-95 duration-200">
           <div className="w-10 h-10 rounded-full bg-[#a8d5ba]/10 text-[#a8d5ba] flex items-center justify-center animate-bounce">
@@ -126,14 +116,11 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
         </div>
       )}
 
-      {/* KHUNG BOX TRUNG TÂM GỐC - GIỮ NGUYÊN 100% GIAO DIỆN CŨ CỦA BẠN */}
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-xl h-full max-h-[500px] bg-[rgba(253,251,247,0.9)] backdrop-blur-[16px] border border-white rounded-[32px] shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-6 flex flex-col justify-between overflow-hidden animate-in zoom-in-95 duration-200"
       >
-        {/* Khối nội dung cuộn phía trên */}
         <div className="flex flex-col flex-1 overflow-hidden w-full">
-          {/* Header nhóm */}
           <div className="flex items-center justify-between shrink-0 pb-2.5 border-b border-[#c3c8bd]/10">
             <h4 className="text-xs font-bold text-[#434840] uppercase tracking-wider flex items-center gap-1.5">
               <span className="material-symbols-outlined text-sm text-[#a8d5ba]">
@@ -150,7 +137,6 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
             </button>
           </div>
 
-          {/* Ô Input Nhập Tên Nhóm */}
           <div className="space-y-1 pt-3 shrink-0">
             <label className="text-[10px] font-bold uppercase tracking-wider text-[#434840]/60 ml-1">
               Tên nhóm trò chuyện
@@ -165,7 +151,6 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
             />
           </div>
 
-          {/* Ô Tìm Kiếm Thành Viên */}
           <div className="space-y-1 pt-3 shrink-0">
             <label className="text-[10px] font-bold uppercase tracking-wider text-[#434840]/60 ml-1">
               Thêm thành viên vào nhóm
@@ -195,7 +180,6 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
             </div>
           </div>
 
-          {/* Hàng ngang hiển thị các thành viên đã chọn nhanh */}
           {selectedFriendsPreview.length > 0 && (
             <div className="flex items-center gap-1.5 pt-2 shrink-0 overflow-x-auto pb-1 scrollbar-none">
               {selectedFriendsPreview.map((friend) => (
@@ -218,7 +202,6 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
             </div>
           )}
 
-          {/* Danh Sách Thành Viên Để Tích Chọn */}
           <div className="flex-1 overflow-y-auto my-3 space-y-1.5 pr-0.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#434840]/60 ml-1 pb-0.5">
               Gợi ý thành viên ({selectedMemberIds.length})
@@ -286,7 +269,6 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
           </div>
         </div>
 
-        {/* Cụm Nút Hành Động Dưới Đáy Khung */}
         <div className="flex gap-2 pt-2 border-t border-[#c3c8bd]/10 shrink-0 w-full">
           <button
             type="button"

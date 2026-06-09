@@ -5,8 +5,8 @@ export default function AddMemberModal({
   isOpen,
   onClose,
   onAddMember,
-  currentMembers = [], // Danh sách thành viên HIỆN TẠI của nhóm
-  allFriends = [], // Danh sách bạn bè gốc ban đầu để lấy ngẫu nhiên
+  currentMembers = [],
+  allFriends = [],
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
