@@ -29,7 +29,7 @@ export default function Login() {
         navigate("/chat");
       } else {
         setError(result.message || "Đăng nhập thất bại. Vui lòng thử lại!");
-        setIsLoading(false); // Tắt hiệu ứng chờ nếu có thông điệp lỗi cấu trúc
+        setIsLoading(false);
       }
     } catch (err) {
       console.error("Đăng nhập thất bại:", err.message);
@@ -38,13 +38,12 @@ export default function Login() {
           ? "Email hoặc mật khẩu không chính xác!"
           : err.message,
       );
-      setIsLoading(false); // Tắt hiệu ứng chờ khi bắt được ngoại lệ ngoại mạng/hệ thống
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen text-slate-800 relative overflow-hidden flex items-center justify-center p-4">
-      {/* Background Image Layer */}
       <div className="absolute inset-0 z-0">
         <img
           alt="Ghibli Tree Background"
@@ -158,7 +157,6 @@ export default function Login() {
             </a>
           </div>
 
-          {/* Khối thông báo lỗi tĩnh - Ngăn lỗi xung đột gỡ bỏ Node */}
           <div className="error-container w-full min-h-[40px] empty:hidden">
             {error ? (
               <div
@@ -181,11 +179,9 @@ export default function Login() {
           >
             {isLoading ? (
               <div className="flex items-center gap-2 animate-none">
-                {/* Cô lập class xoay chỉ nằm duy nhất trong thẻ icon này */}
                 <span className="material-symbols-outlined animate-spin text-[18px] inline-block">
                   progress_activity
                 </span>
-                {/* Bọc chữ vào thẻ span độc lập để cố định không bị xoay theo */}
                 <span className="inline-block">Summoning Spirit...</span>
               </div>
             ) : (

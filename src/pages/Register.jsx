@@ -31,7 +31,7 @@ export default function Register() {
         }, 1500);
       } else {
         setError(result.message || "Đăng ký thất bại. Vui lòng thử lại!");
-        setIsLoading(false); // Tắt hiệu ứng chờ nếu backend trả mã lỗi có cấu trúc
+        setIsLoading(false);
       }
     } catch (err) {
       console.error("Đăng ký thất bại:", err.message);
@@ -40,13 +40,12 @@ export default function Register() {
           ? "Thông tin đăng ký không hợp lệ hoặc Email đã tồn tại!"
           : err.message,
       );
-      setIsLoading(false); // Tắt hiệu ứng chờ khi xảy ra lỗi kết nối/nghiệp vụ
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen text-slate-800 relative overflow-hidden flex items-center justify-center p-4">
-      {/* Background Image Layer */}
       <div className="absolute inset-0 z-0">
         <img
           alt="Ghibli Tree Background"
@@ -112,7 +111,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Email Input */}
           <div className="space-y-1">
             <label className="sr-only" htmlFor="email">
               Email Address
@@ -138,7 +136,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Password Input */}
           <div className="space-y-1">
             <label className="sr-only" htmlFor="password">
               Password
@@ -176,7 +173,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Khối thông báo tĩnh - Ngăn lỗi xung đột gỡ bỏ Node */}
           <div className="message-container w-full min-h-[40px] empty:hidden">
             {error ? (
               <div
@@ -195,9 +191,8 @@ export default function Register() {
             ) : null}
           </div>
 
-          {/* CTA Button */}
           <button
-            key={isLoading ? "btn-loading" : "btn-active"} // Gán key rõ ràng để ép React không nhầm DOM
+            key={isLoading ? "btn-loading" : "btn-active"}
             className={`w-full h-11 mt-4 bg-[#4a6545] text-white rounded-full font-bold text-sm shadow-md hover:bg-[#3b5237] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex justify-center items-center gap-2 ${
               isLoading ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
             }`}
@@ -225,7 +220,6 @@ export default function Register() {
           </button>
         </form>
 
-        {/* Footer Link */}
         <div className="mt-6 text-center">
           <Link
             className="text-xs font-medium text-slate-500 hover:text-[#4a6545] transition-colors underline underline-offset-4"

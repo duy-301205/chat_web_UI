@@ -14,18 +14,15 @@ export default function MyProfile({ userData, onBack }) {
   const [spiritName, setSpiritName] = useState(defaultUser.name);
   const [emailText, setEmailText] = useState(defaultUser.email);
   const [avatarUrl, setAvatarUrl] = useState(defaultUser.avatar);
-  const [presence, setPresence] = useState("Awake"); // Ánh xạ trạng thái thực tế từ API (Awake, Hibernating, Do Not Disturb)
+  const [presence, setPresence] = useState("Awake");
 
-  // Giữ nguyên các State phục vụ cho cột bên phải của bạn
   const [currentMood, setCurrentMood] = useState(
     "Brewing tea under the camphor tree",
   );
   const [enableWhispers, setEnableWhispers] = useState(true);
   const [environment, setEnvironment] = useState("Daylight"); // Daylight, Moonlight
 
-  // --- LOGIC GỌI API LẤY THÔNG TIN THỰC TẾ ---
   useEffect(() => {
-    // Nếu component cha DashboardChat có truyền sẵn dữ liệu thô qua prop userData, dùng luôn
     if (userData) {
       setSpiritName(userData.username || defaultUser.name);
       setEmailText(userData.email || defaultUser.email);
@@ -34,7 +31,6 @@ export default function MyProfile({ userData, onBack }) {
       return;
     }
 
-    // Nếu không có prop, tiến hành gọi API từ Server Backend
     const loadProfileData = async () => {
       try {
         const result = await getMyProfileApi();
@@ -44,7 +40,6 @@ export default function MyProfile({ userData, onBack }) {
           setEmailText(profile.email || defaultUser.email);
           setAvatarUrl(profile.avatarUrl || defaultUser.avatar);
 
-          // Ánh xạ chuỗi trạng thái (ONLINE, OFFLINE...) từ DB sang text hiển thị tương ứng trên UI của bạn
           if (profile.status) {
             setPresence(mapBackendStatusToUI(profile.status));
           }
@@ -57,14 +52,12 @@ export default function MyProfile({ userData, onBack }) {
     loadProfileData();
   }, [userData]);
 
-  // Hàm phụ trợ hỗ trợ đồng bộ trạng thái giữa DB Backend và UI Preferences của bạn
   const mapBackendStatusToUI = (status) => {
     if (status === "ONLINE" || status === "AWAKE") return "Awake";
     if (status === "OFFLINE" || status === "HIBERNATING") return "Hibernating";
     if (status === "BUSY" || status === "DND") return "Do Not Disturb";
     return "Awake";
   };
-  // --------------------------------------------
 
   const handleLeaveSanctuary = () => {
     localStorage.removeItem("userId");
@@ -89,12 +82,10 @@ export default function MyProfile({ userData, onBack }) {
         <div className="w-8 h-8"></div>
       </div>
 
-      {/* CHỈ SỬA TẠI ĐÂY: Thêm style ẩn thanh cuộn của các trình duyệt để mất con lăn mắt nhìn */}
       <div
         className="flex-1 overflow-y-auto p-5"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {/* Nhúng đoạn style CSS nhỏ này vào để ép trình duyệt Webkit (Chrome/Safari) ẩn con lăn */}
         <style>{`
           div::-webkit-scrollbar {
             display: none;
@@ -102,7 +93,6 @@ export default function MyProfile({ userData, onBack }) {
         `}</style>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-[1200px] mx-auto">
-          {/* CỘT TRÁI */}
           <div className="lg:col-span-2 bg-[rgba(253,251,247,0.4)] border border-white/40 rounded-3xl p-5 flex flex-col items-center relative">
             <h3 className="text-base font-bold text-[#434840]/90 mb-4 text-center w-full">
               Your Sanctuary
@@ -186,7 +176,6 @@ export default function MyProfile({ userData, onBack }) {
             </div>
           </div>
 
-          {/* CỘT PHẢI */}
           <div className="space-y-4">
             <div className="bg-[rgba(253,251,247,0.2)] border border-white/20 rounded-3xl p-4 flex flex-col h-full">
               <h3 className="text-sm font-bold text-[#434840]/90 mb-4">

@@ -49,7 +49,6 @@ export default function DashboardChat() {
   const [isPartnerTyping, setIsPartnerTyping] = useState("");
   const currentUserId = Number(localStorage.getItem("userId"));
 
-  // --- HIỆU ỨNG CHỈ BÔI KHUNG CHỨA TIN NHẮN ---
   const handleJumpToMessage = (messageId) => {
     const element = document.getElementById(`msg-${messageId}`);
 
@@ -75,7 +74,6 @@ export default function DashboardChat() {
       console.warn("Không tìm thấy phần tử tin nhắn trên màn hình hiển thị.");
     }
   };
-  // -----------------------------------------------------------------
 
   const pushSystemNotification = (title, desc, icon = "info") => {
     const newNotif = {
@@ -118,10 +116,7 @@ export default function DashboardChat() {
     }
   };
 
-  // Luồng 1: Chỉ xử lý kéo API làm tươi dữ liệu khi đổi phòng
   useEffect(() => {
-    // 🎯 ĐÃ SỬA: Xóa sạch tin nhắn phòng cũ ngay lập tức để kích hoạt
-    // hàm tự động cuộn xuống đáy của MessageList chạy chuẩn xác khi phòng mới nạp tin
     setMessages([]);
     setIsPartnerTyping("");
     fetchMessages();
@@ -130,10 +125,8 @@ export default function DashboardChat() {
   useEffect(() => {
     if (!activeChatId || !messages || messages.length === 0) return;
 
-    // Lấy tin nhắn cuối cùng thực tế đang có trong khung chat
     const lastMsg = messages[messages.length - 1];
 
-    // Chỉ báo xem và xóa số chưa đọc ĐÚNG phòng chat mình đang mở trên màn hình
     const isFromMe = Number(lastMsg.senderId) === currentUserId;
 
     if (!isFromMe) {
@@ -191,12 +184,10 @@ export default function DashboardChat() {
     fetchMembers();
   }, [activeChatId, currentUserId]);
 
-  // --- THỰC HIỆN ĐỒNG BỘ REALTIME QUA WEBSOCKET ---
   useEffect(() => {
     if (!activeChatId) return;
 
     const onMessageReceived = (newMsg) => {
-      // 1. Bảo đảm luôn ép kiểu Number toàn diện để nổ tin nhắn realtime vào khung chat giữa
       if (Number(newMsg.conversationId) === Number(activeChatId)) {
         setMessages((prevMessages) => {
           if (prevMessages.some((m) => m.id === newMsg.id)) return prevMessages;
@@ -206,7 +197,6 @@ export default function DashboardChat() {
         });
       }
 
-      // 2. Cập nhật nội dung tin nhắn và đẩy phòng chat lên đầu danh sách thanh Sidebar bên trái
       setChatList((prevList) => {
         const existingChat = prevList.find(
           (chat) => Number(chat.id) === Number(newMsg.conversationId),
@@ -217,7 +207,6 @@ export default function DashboardChat() {
             Number(newMsg.conversationId) === Number(activeChatId);
           const isFromMe = Number(newMsg.senderId) === currentUserId;
 
-          // Nếu tin nhắn từ người khác gửi đến và mình đang không mở trực tiếp phòng chat đó thì tăng số tin chưa đọc lên 1
           const newUnreadCount =
             !isFromMe && !isCurrentActiveChat
               ? (existingChat.unreadCount || 0) + 1
@@ -243,7 +232,6 @@ export default function DashboardChat() {
         return prevList;
       });
 
-      // 3. Tự động gửi tín hiệu đã xem nếu bạn đang mở trực tiếp chính phòng chat đó
       if (
         Number(newMsg.senderId) !== currentUserId &&
         Number(newMsg.conversationId) === Number(activeChatId)
@@ -323,7 +311,7 @@ export default function DashboardChat() {
     return () => {
       disconnectWebSocket();
     };
-  }, [activeChatId, currentUserId, chatList.length]); // Thêm độ dài danh sách chat vào dep mảng để quản lý kết nối chuẩn xác
+  }, [activeChatId, currentUserId, chatList.length]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeChatId) return;
