@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 
 export default function MessageList({
   messages,
-  members, // Danh sách thành viên để lấy Avatar và Nickname
+  members,
   onStartEdit,
   onRecallMessage,
   isPartnerTyping,
@@ -17,23 +17,19 @@ export default function MessageList({
     messages && messages.length > 0 ? messages[0].conversationId : null;
   const isFirstLoadRef = useRef(true);
 
-  // 1. Đổi phòng chat thì đặt lại cờ FirstLoad để ép nhảy xuống đáy lập tức ở phòng mới
   useEffect(() => {
     isFirstLoadRef.current = true;
   }, [activeChatId]);
 
-  // 2. Dùng ResizeObserver để theo dõi khi nào toàn bộ tin nhắn dãn hết chiều cao thật
   useEffect(() => {
     if (!containerRef.current) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      // Nếu là lần đầu tiên vào phòng hoặc đổi phòng -> Ép nhảy thẳng xuống đáy lập tức
       if (isFirstLoadRef.current) {
         messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
         isFirstLoadRef.current = false;
         setShowScrollBtn(false);
       } else {
-        // Nếu đang ở trong phòng chat mà có tin nhắn mới đến từ WebSocket, kiểm tra xem có đang ở sát đáy không
         const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
         const isAtBottom = scrollHeight - scrollTop - clientHeight < 400;
 
@@ -41,7 +37,6 @@ export default function MessageList({
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
           setShowScrollBtn(false);
         } else {
-          // Đối phương nhắn tin tới khi mình đang cuộn lên trên xem tin cũ -> Hiện nút báo hiệu ngay
           setShowScrollBtn(true);
         }
       }
@@ -54,20 +49,15 @@ export default function MessageList({
     };
   }, [messages, activeChatId]);
 
-  // 🎯 3. LUỒNG BỔ SUNG: THEO DÕI HÀNH VI CUỘN CHUỘT ĐỂ ẨN/HIỆN NÚT "TIN NHẮN MỚI NHẤT"
   const handleScroll = () => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
 
-    // Kiểm tra xem người dùng có đang đứng ở đáy không (cách đáy dưới 150px)
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 150;
 
     if (isAtBottom) {
-      // Nếu đã kéo xuống sát đáy -> Ẩn nút đi cho đỡ rối mắt
       setShowScrollBtn(false);
     } else {
-      // 🔥 ĐÃ THÊM: Nếu cuộn ngược lên trên (cách đáy > 150px), lập tức hiện nút "Tin nhắn mới nhất"
-      // Chỉ hiện khi phòng chat thực sự có tin nhắn để tránh hiện ở màn hình trống
       if (messages && messages.length > 0) {
         setShowScrollBtn(true);
       }
@@ -95,7 +85,6 @@ export default function MessageList({
     });
   };
 
-  // THU THẬP AVATAR ĐÃ XEM (MESSENGER STYLE):
   const getSeenAvatarsForMessage = (messageId) => {
     if (!members || members.length === 0) return [];
 
@@ -118,7 +107,6 @@ export default function MessageList({
         div::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* NÚT TIN NHẮN MỚI */}
       {showScrollBtn && (
         <button
           onClick={scrollToBottom}
@@ -265,7 +253,6 @@ export default function MessageList({
                   </div>
                 </div>
 
-                {/* GIAO DIỆN AVATAR ĐÃ XEM */}
                 {seenUsers.length > 0 && (
                   <div
                     className={`flex items-center gap-1 mt-0.5 animate-in fade-in zoom-in-95 duration-200 ${isMine ? "mr-1" : "ml-9"}`}

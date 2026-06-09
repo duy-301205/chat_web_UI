@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-// IMPORT CHUẨN XÁC: Đảm bảo file api.js của bạn đã export đầy đủ các hàm này
 import {
   searchUsersApi,
   requestFriendApi,
@@ -13,11 +12,9 @@ export default function FindSpirits({ onAddFriend }) {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // STATE ĐÃ THÊM: Quản lý danh sách lời mời gửi đến và trạng thái đóng/mở khay danh sách
   const [pendingRequests, setPendingRequests] = useState([]);
   const [showRequestsPopover, setShowRequestsPopover] = useState(false);
 
-  // Dữ liệu danh sách linh hồn mẫu ban đầu (Giữ nguyên vẹn 100%)
   const spiritCandidates = [
     {
       id: 1,
@@ -63,7 +60,6 @@ export default function FindSpirits({ onAddFriend }) {
     },
   ];
 
-  // LOGIC ĐÃ THÊM: Tải danh sách lời mời kết bạn đang chờ (Pending) gửi đến mình
   const fetchPendingRequests = async () => {
     try {
       const response = await getPendingRequestsApi();
@@ -75,12 +71,10 @@ export default function FindSpirits({ onAddFriend }) {
     }
   };
 
-  // Tự động gọi API lấy danh sách lời mời khi mở trang
   useEffect(() => {
     fetchPendingRequests();
   }, []);
 
-  // TÍCH HỢP LOGIC API 1: Kích hoạt tự động tìm kiếm mỗi khi searchQuery thay đổi từ khóa
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (!searchQuery.trim()) {
@@ -104,7 +98,6 @@ export default function FindSpirits({ onAddFriend }) {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  // TÍCH HỢP LOGIC API 2: Xử lý hành động bấm nút Add Friend thật lên Backend
   const handleAddFriendClick = async (spirit) => {
     try {
       const response = await requestFriendApi(spirit.id);
@@ -124,16 +117,13 @@ export default function FindSpirits({ onAddFriend }) {
     }
   };
 
-  // LOGIC ĐÃ THÊM: Xử lý Chấp nhận lời mời kết bạn từ khay danh sách
   const handleAcceptRequest = async (targetUserId) => {
     try {
       const response = await acceptFriendRequest(targetUserId);
       if (response) {
-        // Xóa khỏi hàng đợi hiển thị ở Popover
         setPendingRequests((prev) =>
           prev.filter((req) => req.id !== targetUserId),
         );
-        // Nếu người đó đang nằm trong danh sách tìm kiếm hiển thị bên dưới, đổi trạng thái thành ACCEPTED luôn
         setSearchResults((prev) =>
           prev.map((u) =>
             u.id === targetUserId ? { ...u, relationStatus: "ACCEPTED" } : u,
@@ -145,7 +135,6 @@ export default function FindSpirits({ onAddFriend }) {
     }
   };
 
-  // LOGIC ĐÃ THÊM: Xử lý Từ chối / Hủy yêu cầu kết bạn từ khay danh sách
   const handleDeclineRequest = async (targetUserId) => {
     try {
       const response = await removeFriend(targetUserId);
@@ -164,7 +153,6 @@ export default function FindSpirits({ onAddFriend }) {
     }
   };
 
-  // Định nghĩa mảng hiển thị khớp 100% với thuộc tính DTO Java mới của bạn
   const displaySpirits =
     searchQuery.trim() !== ""
       ? searchResults.map((u) => ({
@@ -186,7 +174,6 @@ export default function FindSpirits({ onAddFriend }) {
 
   return (
     <div className="flex-1 rounded-3xl bg-[rgba(253,251,247,0.7)] backdrop-blur-[12px] border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)] p-4 flex flex-col h-full overflow-hidden animate-in fade-in duration-300">
-      {/* Khu vực Header tinh tế */}
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#c3c8bd]/10 pb-4 relative">
         <div>
           <h2 className="text-lg font-bold text-[#1c1c18] tracking-tight flex items-center gap-2">
@@ -200,7 +187,6 @@ export default function FindSpirits({ onAddFriend }) {
           </p>
         </div>
 
-        {/* Cụm công cụ bên phải gồm: Ô tìm kiếm + Nút mở danh sách lời mời kết bạn */}
         <div className="flex items-center gap-2 self-end sm:self-auto w-full sm:w-auto justify-end">
           {/* Thanh tìm kiếm */}
           <div className="w-full sm:w-64">
@@ -228,7 +214,6 @@ export default function FindSpirits({ onAddFriend }) {
             </div>
           </div>
 
-          {/* ĐÃ THÊM: Khối xử lý giao diện xem danh sách lời mời kết bạn gửi đến */}
           <div className="relative shrink-0">
             <button
               onClick={() => setShowRequestsPopover(!showRequestsPopover)}
@@ -241,13 +226,11 @@ export default function FindSpirits({ onAddFriend }) {
               <span className="material-symbols-outlined text-[18px]">
                 person_add
               </span>
-              {/* Chấm đỏ nhấp nháy báo hiệu khi có lời mời thực tế gửi đến */}
               {pendingRequests.length > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white animate-bounce" />
               )}
             </button>
 
-            {/* KHAY THẢ POPOVER DANH SÁCH LỜI MỜI ĐANG CHỜ DUYỆT */}
             {showRequestsPopover && (
               <div className="absolute right-0 mt-2 w-72 bg-white/95 backdrop-blur-md border border-black/5 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] p-3 flex flex-col gap-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between border-b border-[#f0eee8] pb-2">
@@ -286,7 +269,6 @@ export default function FindSpirits({ onAddFriend }) {
                           </span>
                         </div>
 
-                        {/* Cụm nút bấm phê duyệt cực kỳ gọn gàng */}
                         <div className="flex items-center gap-1 shrink-0">
                           <button
                             onClick={() => handleAcceptRequest(req.id)}
@@ -317,7 +299,6 @@ export default function FindSpirits({ onAddFriend }) {
         </div>
       </div>
 
-      {/* Danh sách các linh hồn dạng Card Dọc */}
       <div className="flex-1 overflow-y-auto pr-1">
         {loading ? (
           <div className="p-8 text-center text-[11px] text-[#434840]/50 italic flex flex-col items-center gap-1.5 pt-12">
@@ -333,7 +314,6 @@ export default function FindSpirits({ onAddFriend }) {
                 key={spirit.id}
                 className="bg-white/90 rounded-2xl border border-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] p-4 flex flex-col sm:flex-row items-center sm:items-start gap-3.5 hover:shadow-[0_4px_15px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300"
               >
-                {/* Avatar khối tròn nhỏ gọn */}
                 <div className="relative w-14 h-14 shrink-0">
                   <img
                     src={spirit.avatar}
@@ -347,7 +327,6 @@ export default function FindSpirits({ onAddFriend }) {
                   </div>
                 </div>
 
-                {/* Khu vực thông tin chi tiết */}
                 <div className="flex-1 min-w-0 space-y-0.5 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
                     <h3 className="text-sm font-bold text-[#1c1c18] tracking-tight">
@@ -364,9 +343,7 @@ export default function FindSpirits({ onAddFriend }) {
                     {spirit.bio}
                   </p>
 
-                  {/* Hệ thống nút bấm phân rã luồng */}
                   <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-2">
-                    {/* TRƯỜNG HỢP A: ĐÃ LÀ BẠN BÈ */}
                     {spirit.relationStatus === "ACCEPTED" && (
                       <button
                         disabled
@@ -379,7 +356,6 @@ export default function FindSpirits({ onAddFriend }) {
                       </button>
                     )}
 
-                    {/* TRƯỜNG HỢP B: ĐANG CHỜ CHẤP NHẬN */}
                     {spirit.relationStatus === "PENDING" && (
                       <button
                         disabled
@@ -392,7 +368,6 @@ export default function FindSpirits({ onAddFriend }) {
                       </button>
                     )}
 
-                    {/* TRƯỜNG HỢP C: CHƯA KẾT BẠN */}
                     {(spirit.relationStatus === "NONE" ||
                       !spirit.relationStatus) && (
                       <button
@@ -406,7 +381,6 @@ export default function FindSpirits({ onAddFriend }) {
                       </button>
                     )}
 
-                    {/* Nút Whisper */}
                     <button className="h-7 px-3 bg-[#f0eee8]/60 hover:bg-[#ebe8e2] border border-[#c3c8bd]/20 text-[#434840] rounded-full text-[10px] font-semibold active:scale-95 transition-all flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs">
                         chat_bubble
@@ -420,7 +394,6 @@ export default function FindSpirits({ onAddFriend }) {
           </div>
         )}
 
-        {/* Màn hình thông báo rỗng */}
         {!loading && displaySpirits.length === 0 && (
           <div className="p-8 text-center text-[11px] text-[#434840]/40 italic flex flex-col items-center gap-1.5">
             <span className="material-symbols-outlined text-3xl text-[#434840]/20">

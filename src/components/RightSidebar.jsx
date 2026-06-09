@@ -15,15 +15,14 @@ export default function RightSidebar({
   handleAddMemberSubmit,
   handleLeaveGroupSubmit,
   handleUpdateNicknameSubmit,
-  onJumpToMessage, // Hàm xử lý khi click vào tin nhắn để cuộn màn hình chat chính đến vị trí đó
+  onJumpToMessage,
 }) {
-  const [viewMembersMode, setViewMembersMode] = useState("VIEW"); // "VIEW" hoặc "EDIT"
+  const [viewMembersMode, setViewMembersMode] = useState("VIEW");
 
-  // --- LOGIC TÌM KIẾM ĐƯỢC THÊM VÀO ---
-  const [isSearching, setIsSearching] = useState(false); // Trạng thái đang mở box tìm kiếm
-  const [searchKeyword, setSearchKeyword] = useState(""); // Từ khóa tìm kiếm
-  const [searchResults, setSearchResults] = useState([]); // Kết quả tin nhắn từ API
-  const [isLoading, setIsLoading] = useState(false); // Trạng thái đợi API phản hồi
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!searchKeyword.trim()) {
@@ -33,7 +32,6 @@ export default function RightSidebar({
 
     setIsLoading(true);
 
-    // Chờ người dùng dừng gõ 500ms mới kích hoạt gọi API
     const delayDebounceFn = setTimeout(async () => {
       try {
         const result = await searchMessagesApi(
@@ -80,7 +78,6 @@ export default function RightSidebar({
         onUpdateNickname={handleUpdateNicknameSubmit}
       />
 
-      {/* TIÊU ĐỀ SIDEBAR: Thay đổi linh hoạt dựa theo trạng thái tìm kiếm */}
       <div className="h-[60px] flex items-center justify-between px-4 border-b border-[#c3c8bd]/10 shrink-0">
         <h3 className="text-xs font-bold text-[#1c1c18] uppercase tracking-wider">
           {isSearching ? "Tìm kiếm tin nhắn" : "Thông tin nhóm"}
@@ -106,9 +103,7 @@ export default function RightSidebar({
       {/* DIỆN TÍCH CHÍNH CỦA SIDEBAR */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {isSearching ? (
-          // --- GIAO DIỆN BOX TÌM KIẾM VÀ KẾT QUẢ KHI NGƯỜI DÙNG CLICK "TÌM KIẾM" ---
           <div className="flex flex-col flex-1 overflow-hidden">
-            {/* Ô nhập từ khóa */}
             <div className="p-3 border-b border-[#c3c8bd]/10 shrink-0">
               <div className="relative">
                 <span className="material-symbols-outlined text-lg absolute left-2.5 top-1/2 -translate-y-1/2 text-[#434840]/60">
@@ -180,7 +175,6 @@ export default function RightSidebar({
             </div>
           </div>
         ) : (
-          // --- GIỮ NGUYÊN TOÀN BỘ GIAO DIỆN CŨ CỦA BẠN KHI KHÔNG TRONG TRẠNG THÁI TÌM KIẾM ---
           <div className="flex-1 overflow-y-auto">
             {/* Avatar & Name */}
             <div className="p-4 flex flex-col items-center border-b border-[#c3c8bd]/10">
@@ -216,7 +210,6 @@ export default function RightSidebar({
                   </span>
                 </div>
 
-                {/* SỬA TẠI ĐÂY: Kích hoạt nút tìm kiếm sang UI nhập từ khóa */}
                 <div
                   onClick={() => setIsSearching(true)}
                   className="flex flex-col items-center gap-1 cursor-pointer group"

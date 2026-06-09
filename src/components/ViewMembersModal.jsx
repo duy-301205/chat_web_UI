@@ -2,28 +2,25 @@ import React, { useState } from "react";
 
 export default function ViewMembersModal({
   isOpen,
-  mode = "VIEW", // Nhận "VIEW" hoặc "EDIT" từ RightSidebar
+  mode = "VIEW",
   onClose,
   membersList = [],
-  conversationId, // Nhận thêm ID phòng chat từ RightSidebar
-  onUpdateNickname, // Nhận thêm hàm update từ DashboardChat
+  conversationId,
+  onUpdateNickname,
 }) {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // State quản lý thành viên nào đang được click sửa biệt danh
   const [editingUserId, setEditingUserId] = useState(null);
   const [tempNickname, setTempNickname] = useState("");
 
   if (!isOpen) return null;
 
-  // ĐÃ SỬA: Đưa logic lọc mảng này lên TRÊN để khởi tạo biến trước
   const filteredMembers = membersList.filter((m) => {
     const currentNickname = m.nickName || m.nickname || "";
     const nameToSearch = currentNickname || m.username || "";
     return nameToSearch.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  // ĐÃ SỬA: Hạ đoạn log xuống DƯỚI để không gây lỗi crash 'before initialization'
   console.log("-----------------------------------------");
   console.log("MÔ TẢ DATA MÀ MODAL NHẬN ĐƯỢC:");
   console.log("Tổng số phần tử:", filteredMembers.length);
@@ -35,13 +32,11 @@ export default function ViewMembersModal({
   }
   console.log("-----------------------------------------");
 
-  // Bật chế độ chỉnh sửa biệt danh cho một thành viên
   const startEditing = (userId, currentNickname, username) => {
     setEditingUserId(userId);
     setTempNickname(currentNickname || username || "");
   };
 
-  // Gửi dữ liệu biệt danh mới lên hàm xử lý để gọi API
   const saveNickname = async (userId) => {
     if (onUpdateNickname) {
       await onUpdateNickname(conversationId, userId, tempNickname);
@@ -49,7 +44,6 @@ export default function ViewMembersModal({
     setEditingUserId(null);
   };
 
-  // Bấm Enter để lưu nhanh, Escape để hủy sửa
   const handleKeyDown = (e, userId) => {
     if (e.key === "Enter") {
       saveNickname(userId);
@@ -59,10 +53,8 @@ export default function ViewMembersModal({
   };
 
   return (
-    /* DÙNG ABSOLUTE INSET-0 Z-50: Lấp đầy toàn bộ khung aside bên ngoài, đè qua header cũ */
     <div className="absolute inset-0 bg-[#fdfbf7] flex flex-col h-full w-full justify-between overflow-hidden animate-in slide-in-from-right duration-200 z-50 p-4">
       <div className="flex flex-col flex-1 overflow-hidden w-full">
-        {/* Header riêng biệt của view - ĐÃ FIX gộp hàng dấu ngoặc đơn tránh vỡ layout render */}
         <div className="h-[60px] flex items-center justify-between shrink-0 pb-2 border-b border-b-[#c3c8bd]/10 mb-3">
           <h4 className="text-xs font-bold text-[#1c1c18] uppercase tracking-wider flex items-center gap-1.5">
             <span className="material-symbols-outlined text-sm text-[#a8d5ba]">
@@ -83,7 +75,6 @@ export default function ViewMembersModal({
           </button>
         </div>
 
-        {/* Thanh tìm kiếm nội bộ */}
         <div className="relative flex items-center w-full h-8 rounded-lg bg-[#f0eee8]/80 border border-[#c3c8bd]/30 px-2.5 text-[#1c1c18] focus-within:bg-white focus-within:border-[#a8d5ba]/50 transition-all shadow-sm shrink-0 mb-3">
           <span className="material-symbols-outlined absolute left-2.5 text-[#434840]/40 text-sm">
             search
@@ -97,11 +88,9 @@ export default function ViewMembersModal({
           />
         </div>
 
-        {/* Danh sách thành viên */}
         <div className="flex-1 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-none">
           <div className="flex flex-col gap-1.5">
             {filteredMembers.map((member) => {
-              // Trích xuất ID an toàn đề phòng sai lệch kiểu dữ liệu từ DTO
               const targetUserId = member.userId || member.id;
               const currentNickname = member.nickName || member.nickname;
 
@@ -110,7 +99,6 @@ export default function ViewMembersModal({
                   key={targetUserId}
                   className="flex items-center justify-between p-2 rounded-xl bg-white/50 border border-[#c3c8bd]/5 hover:bg-white transition-colors gap-2"
                 >
-                  {/* Khối Avatar & Thông tin tên */}
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div className="relative w-8 h-8 shrink-0">
                       <img
@@ -124,7 +112,6 @@ export default function ViewMembersModal({
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      {/* ================= CHẾ ĐỘ 1: XEM TẤT CẢ (MODE VIEW) ================= */}
                       {mode === "VIEW" && (
                         <>
                           <p className="text-xs font-bold text-[#1c1c18] truncate flex items-center flex-wrap gap-x-1">
@@ -147,7 +134,6 @@ export default function ViewMembersModal({
                         </>
                       )}
 
-                      {/* ================= CHẾ ĐỘ 2: BIỆT DANH (MODE EDIT) ================= */}
                       {mode === "EDIT" && (
                         <>
                           <p className="text-xs font-bold text-[#1c1c18] truncate flex items-center gap-1">
@@ -159,7 +145,6 @@ export default function ViewMembersModal({
                             )}
                           </p>
 
-                          {/* Ô nhập input sửa đổi hoặc dòng text biệt danh */}
                           {editingUserId === targetUserId ? (
                             <div className="flex items-center gap-1 mt-0.5 w-full">
                               <input
@@ -210,7 +195,6 @@ export default function ViewMembersModal({
                     </div>
                   </div>
 
-                  {/* Phía bên phải: Vai trò hoặc Nút sửa nhanh */}
                   <div className="flex items-center gap-1.5 shrink-0">
                     {mode === "EDIT" && editingUserId !== targetUserId && (
                       <button
@@ -243,7 +227,6 @@ export default function ViewMembersModal({
         </div>
       </div>
 
-      {/* Nút đóng quay lại nằm dưới đáy */}
       <div className="pt-2 border-t border-[#c3c8bd]/10 shrink-0 w-full bg-[#fdfbf7]">
         <button
           type="button"
